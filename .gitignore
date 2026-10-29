@@ -1,0 +1,64 @@
+# ============================================================
+# Variables de entorno y secretos
+# ============================================================
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+
+# Scripts locales con credenciales
+backend_permisos/test_conn.php
+backend_permisos/test_raw.php
+
+# ============================================================
+# Dependencias
+# ============================================================
+**/node_modules/
+backend_permisos/vendor/
+
+# ============================================================
+# Compilados y temporales
+# ============================================================
+front/build/
+front/coverage/
+front/.eslintcache
+front/node_modules/.cache/
+*.log
+*.err
+*.tmp
+*.temp
+*.bak
+
+# ============================================================
+# Archivos de CodeIgniter generados en tiempo de ejecución
+# ============================================================
+backend_permisos/writable/cache/*
+!backend_permisos/writable/cache/index.html
+backend_permisos/writable/logs/*
+!backend_permisos/writable/logs/index.html
+backend_permisos/writable/session/*
+!backend_permisos/writable/session/index.html
+backend_permisos/writable/uploads/*
+!backend_permisos/writable/uploads/index.html
+backend_permisos/writable/debugbar/*
+!backend_permisos/writable/debugbar/index.html
+
+# ============================================================
+# Respaldos de base de datos (contienen datos reales)
+# ============================================================
+db/backups/
+
+# ============================================================
+# IDE / Sistema operativo
+# ============================================================
+.vscode/
+.idea/
+*.iml
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.swp
+*~
+.history/
