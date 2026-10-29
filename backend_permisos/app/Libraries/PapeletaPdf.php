@@ -29,8 +29,13 @@ class PapeletaPdf
             ? '<div class="sello">SALIDA DE EMERGENCIA<br>POR REGULARIZAR</div>'
             : '';
 
+        $logoPath = FCPATH . 'img' . DIRECTORY_SEPARATOR . 'escudo.png';
+        $logo = is_file($logoPath)
+            ? 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath))
+            : '';
+
         $html = view('papeleta/pdf', [
-            's' => $s, 'barcode' => $barcode, 'sello' => $sello,
+            's' => $s, 'barcode' => $barcode, 'sello' => $sello, 'logo' => $logo,
         ]);
 
         $opts = new Options();
