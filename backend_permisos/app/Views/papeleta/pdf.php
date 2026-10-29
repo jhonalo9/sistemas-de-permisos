@@ -26,20 +26,28 @@ $copias = ['ORIGINAL', 'COPIA'];
     font-size:38px; color:rgba(220,38,38,0.25); font-weight:bold; text-align:center;
     border:6px solid rgba(220,38,38,0.3); padding:16px 32px; }
   .nota { font-size:9px; margin-top:14px; color:#333; }
-  .nro { position:absolute; top:18px; right:24px; text-align:right; }
+  .topbar { width:100%; border-collapse:collapse; margin-bottom:6px; }
+  .topbar td { vertical-align:top; }
+  .topbar .barcode-cell { width:60%; text-align:left; }
+  .topbar .nro { width:40%; text-align:right; }
   .nro .n { font-size:14px; font-weight:bold; color:#1F4E8C; }
   .barcode img { width: 180px; height: 50px; }
 </style></head><body>
 
 <?php foreach ($copias as $indice => $copia): ?>
   <div class="copia" <?= $indice > 0 ? 'style="page-break-before: always;"' : '' ?>>
-    <div class="etiqueta"><?= $copia ?></div>
-
-    <div class="nro">
-      <div class="lbl">N.º</div>
-      <div class="n"><?= esc($s['nro_solicitud']) ?></div>
-      <div class="barcode" style="margin-top:6px;"><?= $barcode ?></div>
-    </div>
+    <table class="topbar">
+      <tr>
+        <td class="barcode-cell">
+          <div class="barcode"><?= $barcode ?></div>
+        </td>
+        <td class="nro">
+          <div class="etiqueta"><?= $copia ?></div>
+          <div class="lbl">N.º</div>
+          <div class="n"><?= esc($s['nro_solicitud']) ?></div>
+        </td>
+      </tr>
+    </table>
 
     <div class="head">
       <h1>MUNICIPALIDAD DISTRITAL DE JOSÉ LEONARDO ORTIZ</h1>
