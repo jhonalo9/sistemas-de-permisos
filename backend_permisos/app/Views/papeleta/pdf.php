@@ -42,7 +42,10 @@ if ($minutos !== null && $minutos > 0) {
   * { box-sizing: border-box; }
   body { font-family: DejaVu Sans, sans-serif; font-size: 9px; color:#111; margin:0; }
   .copia { position: relative; page-break-inside: avoid; }
-  .separador { border-top: 1.5px dashed #555; margin: 10px 0 12px; }
+  .separador {
+    border-top: 1.5px dashed #555;
+    margin: 70px 0 90px;
+}
   .topline { width:100%; border-collapse:collapse; margin-bottom:5px; }
   .topline td { vertical-align:top; padding:0; }
   .barcode { text-align:left; }
