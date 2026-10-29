@@ -9,7 +9,32 @@ $copias = ['ORIGINAL', 'COPIA'];
 $anio = date('Y', strtotime($s['fecha_inicio']));
 $horaSalida = ! empty($s['hora_inicio']) ? substr((string) $s['hora_inicio'], 0, 5) : '';
 $horaRetorno = ! empty($s['hora_fin']) ? substr((string) $s['hora_fin'], 0, 5) : '';
-$tiempo = $s['tiempo_empleado_min'] !== null ? esc($s['tiempo_empleado_min']) . ' min' : '';
+
+$minutos = null;
+if ($s['tiempo_empleado_min'] !== null && (float) $s['tiempo_empleado_min'] > 0) {
+    $minutos = (float) $s['tiempo_empleado_min'];
+} elseif ($horaSalida !== '' && $horaRetorno !== '') {
+    [$hi, $mi] = array_map('intval', explode(':', $horaSalida));
+    [$hf, $mf] = array_map('intval', explode(':', $horaRetorno));
+    $minutos = ($hf * 60 + $mf) - ($hi * 60 + $mi);
+    if ($minutos < 0) {
+        $minutos += 24 * 60;
+    }
+}
+
+$tiempo = '';
+if ($minutos !== null && $minutos > 0) {
+    $minutos = (int) round($minutos);
+    $horas = intdiv($minutos, 60);
+    $resto = $minutos % 60;
+    if ($horas > 0 && $resto > 0) {
+        $tiempo = $horas . ' h ' . $resto . ' min';
+    } elseif ($horas > 0) {
+        $tiempo = $horas . ' h';
+    } else {
+        $tiempo = $resto . ' min';
+    }
+}
 ?>
 <!doctype html>
 <html><head><meta charset="utf-8"><style>
@@ -17,6 +42,7 @@ $tiempo = $s['tiempo_empleado_min'] !== null ? esc($s['tiempo_empleado_min']) . 
   * { box-sizing: border-box; }
   body { font-family: DejaVu Sans, sans-serif; font-size: 9px; color:#111; margin:0; }
   .copia { position: relative; page-break-inside: avoid; }
+  .separador { border-top: 1.5px dashed #555; margin: 10px 0 12px; }
   .topline { width:100%; border-collapse:collapse; margin-bottom:5px; }
   .topline td { vertical-align:top; padding:0; }
   .barcode { text-align:left; }
@@ -51,7 +77,8 @@ $tiempo = $s['tiempo_empleado_min'] !== null ? esc($s['tiempo_empleado_min']) . 
 </style></head><body>
 
 <?php foreach ($copias as $indice => $copia): ?>
-  <div class="copia" <?= $indice > 0 ? 'style="page-break-before: always;"' : '' ?>>
+  <?php if ($indice > 0): ?><div class="separador"></div><?php endif; ?>
+  <div class="copia">
     <table class="topline">
       <tr>
         <td style="width:62%;"><div class="barcode"><?= $barcode ?></div></td>
