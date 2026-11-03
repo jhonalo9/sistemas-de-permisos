@@ -35,6 +35,12 @@ if ($minutos !== null && $minutos > 0) {
         $tiempo = $resto . ' min';
     }
 }
+
+$fechaEmision = date('d/m/Y');
+if (! empty($s['fecha_resolucion']) && strtotime((string) $s['fecha_resolucion']) !== false) {
+    $fechaEmision = date('d/m/Y', strtotime((string) $s['fecha_resolucion']));
+}
+$funcionario = $s['jefe'] ?? '';
 ?>
 <!doctype html>
 <html><head><meta charset="utf-8"><style>
@@ -83,6 +89,7 @@ if ($minutos !== null && $minutos > 0) {
 
 
   .signatures td { height:64px; vertical-align:bottom; text-align:center; font-size:8px; font-weight:bold; text-transform:uppercase; }
+  .signatures .fecha-emision { font-size:9px; font-weight:normal; text-transform:none; }
   .note-table td { border-top:0; font-size:8px; line-height:1.35; text-align:justify; text-transform:uppercase; }
   .sello { position:absolute; top:34%; left:20%; transform:rotate(-30deg);
     font-size:34px; color:rgba(220,38,38,0.22); font-weight:bold; text-align:center;
@@ -172,10 +179,10 @@ if ($minutos !== null && $minutos > 0) {
         </td>
       </tr>
       <tr>
-        <td colspan="3"><span class="label">LUGAR DE COMISIÓN :</span></td>
+        <td colspan="3"><span class="label">LUGAR DE COMISIÓN :</span> <span class="value">Chiclayo</span></td>
       </tr>
       <tr>
-        <td style="width:55%;"><span class="label">NOMBRE DEL FUNCIONARIO :</span></td>
+        <td style="width:55%;"><span class="label">NOMBRE DEL FUNCIONARIO :</span> <span class="value"><?= esc($funcionario) ?></span></td>
         <td style="width:20%;"><span class="label red">HORA DE SALIDA :</span> <span class="value"><?= esc($horaSalida) ?></span></td>
         <td style="width:25%;"><span class="label red">HORA DE RETORNO :</span> <span class="value"><?= esc($horaRetorno) ?></span></td>
       </tr>
@@ -196,7 +203,7 @@ if ($minutos !== null && $minutos > 0) {
 
     <!-- Textos debajo de las líneas -->
     <tr class="signature-labels">
-        <td>FECHA</td>
+        <td>FECHA<br><span class="fecha-emision"><?= esc($fechaEmision) ?></span></td>
         <td>CONTROL DE PERSONAL</td>
         <td>JEFE INMEDIATO</td>
         <td>V.° B.° G.G.R.H.</td>

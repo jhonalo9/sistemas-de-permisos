@@ -113,6 +113,20 @@ export default function EmisionPapeleta() {
             <p className="text-xs text-gray-500 uppercase">N.º resolución</p>
             <p className="font-medium text-text">{solicitud.nro_resolucion || '—'}</p>
           </div>
+          <div>
+            <p className="text-xs text-gray-500 uppercase">Lugar de comisión</p>
+            <p className="font-medium text-text">Chiclayo</p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-500 uppercase">Funcionario que autoriza</p>
+            <p className="font-medium text-text">{solicitud.jefe?.nombre || '—'}</p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-500 uppercase">Fecha de emisión</p>
+            <p className="font-medium text-text">
+              {solicitud.fecha_resolucion ? formatearFecha(solicitud.fecha_resolucion) : '—'}
+            </p>
+          </div>
         </div>
       </Card>
 

@@ -13,11 +13,13 @@ class PapeletaPdf
         $s = $db->table('permiso_solicitud_papeleta s')
             ->select('s.*, t.nombre AS tipo_nombre, t.categoria,
                       CONCAT(sv.apellidos, ", ", sv.nombres) AS servidor,
-                      sv.dni, c.nombre AS cargo, u.nombre AS unidad')
+                      sv.dni, c.nombre AS cargo, u.nombre AS unidad,
+                      CONCAT(j.apellidos, ", ", j.nombres) AS jefe')
             ->join('permiso_tipo_solicitud t', 't.id_tipo = s.id_tipo')
             ->join('permiso_servidor sv', 'sv.id_servidor = s.id_servidor')
             ->join('permiso_cargo c', 'c.id_cargo = COALESCE(s.id_cargo_solicitud, sv.id_cargo)', 'left')
             ->join('permiso_unidad_organica u', 'u.id_unidad = COALESCE(s.id_unidad_solicitud, sv.id_unidad)')
+            ->join('permiso_servidor j', 'j.id_servidor = COALESCE(s.id_jefe_solicitud, sv.id_jefe)', 'left')
             ->where('s.id_solicitud', $idSolicitud)->get()->getRowArray();
 
         if (! $s) return null;
