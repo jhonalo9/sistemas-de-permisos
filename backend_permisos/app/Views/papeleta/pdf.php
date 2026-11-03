@@ -59,12 +59,15 @@ if ($minutos !== null && $minutos > 0) {
   .head-table td { text-align:center; }
   .logo-cell { vertical-align:middle !important; text-align:center; padding:2px !important; }
   .logo-cell img { height:68px; width:auto; }
-  .title { font-size:11px; font-weight:bold; color:#1F4E8C; text-transform:uppercase; }
-  .office { font-size:10px; font-weight:bold; color:#1F4E8C; text-transform:uppercase; }
-  .papeleta { font-size:10px; font-weight:bold; color:#1F4E8C; text-transform:uppercase; }
+  .title { font-size:11px; font-weight:bold; color:#1a1b1d; text-transform:uppercase; }
+  .office { font-size:10px; font-weight:bold; color:#0c0d0e; text-transform:uppercase; }
+  .papeleta { font-size:10px; font-weight:bold; color:#2a80c2; text-transform:uppercase; }
   .year-label { font-size:9px; font-weight:bold; text-transform:uppercase; }
   .year-value { font-size:10px; font-weight:bold; }
   .blank { }
+
+
+  
 
   .fields tr:first-child td { border-top:0; }
   .label { font-size:8.5px; font-weight:bold; text-transform:uppercase; }
@@ -72,11 +75,28 @@ if ($minutos !== null && $minutos > 0) {
   .red { color:#C00000; }
 
   .signatures tr:first-child td { border-top:0; }
+
+  .signatures .signature-space td {
+    height: 40px;
+    vertical-align: bottom;
+}
+
+
   .signatures td { height:64px; vertical-align:bottom; text-align:center; font-size:8px; font-weight:bold; text-transform:uppercase; }
   .note-table td { border-top:0; font-size:8px; line-height:1.35; text-align:justify; text-transform:uppercase; }
   .sello { position:absolute; top:34%; left:20%; transform:rotate(-30deg);
     font-size:34px; color:rgba(220,38,38,0.22); font-weight:bold; text-align:center;
     border:5px solid rgba(220,38,38,0.28); padding:14px 26px; }
+
+.signatures .signature-labels td {
+    height: 22px;
+    vertical-align: middle;
+    text-align: center;
+    font-size: 8px;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+    
 </style></head><body>
 
 <?php foreach ($copias as $indice => $copia): ?>
@@ -100,21 +120,26 @@ if ($minutos !== null && $minutos > 0) {
         <col style="width:20%;">
       </colgroup>
       <tr>
-        <td rowspan="3" class="logo-cell" style="width:14%;">
-          <?php if (! empty($logo)): ?><img src="<?= $logo ?>" alt="Escudo"><?php endif; ?>
-        </td>
-        <td class="title" style="width:56%;">MUNICIPALIDAD DISTRITAL DE JOSÉ LEONARDO ORTIZ</td>
-        <td class="year-label" style="width:10%;">AÑO</td>
-        <td class="year-value" style="width:20%;"><?= esc($anio) ?></td>
-      </tr>
-      <tr>
-        <td class="office" style="width:56%;">OFICINA DE GESTIÓN DE RECURSOS HUMANOS</td>
-        <td colspan="2" class="blank">&nbsp;</td>
-      </tr>
-      <tr>
-        <td class="papeleta" style="width:56%;">PAPELETA DE SALIDA Y RETORNO DE PERSONAL</td>
-        <td colspan="2" class="blank">&nbsp;</td>
-      </tr>
+    <td rowspan="3" class="logo-cell" style="width:14%;">
+        <?php if (! empty($logo)): ?><img src="<?= $logo ?>" alt="Escudo"><?php endif; ?>
+    </td>
+    <td class="title" style="width:56%;">
+        MUNICIPALIDAD DISTRITAL DE JOSÉ LEONARDO ORTIZ
+    </td>
+    <td colspan="2" rowspan="2" class="blank">&nbsp;</td>
+</tr>
+<tr>
+    <td class="office" style="width:56%;">
+        OFICINA DE GESTIÓN DE RECURSOS HUMANOS
+    </td>
+</tr>
+<tr>
+    <td class="papeleta" style="width:56%;">
+        PAPELETA DE SALIDA Y RETORNO DE PERSONAL
+    </td>
+    <td class="year-label" style="width:10%;">AÑO</td>
+    <td class="year-value" style="width:20%;"><?= esc($anio) ?></td>
+</tr>
     </table>
 
     <table class="form fields">
@@ -160,14 +185,24 @@ if ($minutos !== null && $minutos > 0) {
     </table>
 
     <table class="form signatures">
-      <tr>
-        <td style="width:18%;">FECHA</td>
-        <td style="width:18%;">CONTROL DE PERSONAL</td>
-        <td style="width:20%;">JEFE INMEDIATO</td>
-        <td style="width:18%;">V.° B.° G.G.R.H.</td>
-        <td style="width:26%;">FIRMA DE LA ENTIDAD DE DESTINO</td>
-      </tr>
-    </table>
+    <!-- Espacio para las firmas -->
+    <tr class="signature-space">
+        <td style="width:18%;"></td>
+        <td style="width:18%;"></td>
+        <td style="width:20%;"></td>
+        <td style="width:18%;"></td>
+        <td style="width:26%;"></td>
+    </tr>
+
+    <!-- Textos debajo de las líneas -->
+    <tr class="signature-labels">
+        <td>FECHA</td>
+        <td>CONTROL DE PERSONAL</td>
+        <td>JEFE INMEDIATO</td>
+        <td>V.° B.° G.G.R.H.</td>
+        <td>FIRMA DE LA ENTIDAD DE DESTINO</td>
+    </tr>
+</table>
 
     <table class="form note-table">
       <tr>
