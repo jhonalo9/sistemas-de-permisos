@@ -5,7 +5,7 @@ import { Button, Badge, Card, ConfidentialBadge, useToast } from '@/components/c
 import VistaPreviaAdjunto from '@/components/adjuntos/VistaPreviaAdjunto';
 import ModalMotivo from '@/components/decisiones/ModalMotivo';
 import { formatearFecha, estadoLabel, estadoColor, categoriaLabel, unidadLabel, errorMessage, acortarNombreArchivo } from '@/utils/format';
-import { FileText, Clock, Check, AlertTriangle, Mail, User, Eye } from 'lucide-react';
+import { FileText, Clock, Check, AlertTriangle, Mail, User, Eye, ArrowLeft } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { validarSchema } from '@/utils/validations';
@@ -91,6 +91,14 @@ export default function ValidarSolicitud() {
     }
   };
 
+  const volver = () => {
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate('/rrhh/bandeja');
+    }
+  };
+
   if (!solicitud) {
     return (
       <div className="flex flex-col items-center justify-center py-20">
@@ -104,10 +112,21 @@ export default function ValidarSolicitud() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-text">Validar solicitud</h1>
-          <p className="text-gray-600">N.º {solicitud.nro_solicitud}</p>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={volver}
+            className="p-2 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-text shrink-0"
+            aria-label="Volver a la página anterior"
+            title="Volver"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <div>
+            <h1 className="text-2xl font-bold text-text">Validar solicitud</h1>
+            <p className="text-gray-600">N.º {solicitud.nro_solicitud}</p>
+          </div>
         </div>
         <Badge estado={solicitud.estado} className="px-4 py-2 text-base" />
       </div>
