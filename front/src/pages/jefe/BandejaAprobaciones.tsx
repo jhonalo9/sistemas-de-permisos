@@ -38,10 +38,8 @@ export default function BandejaAprobaciones() {
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       <div>
-        <h1 className="text-xl sm:text-2xl font-bold text-text">Bandeja de aprobaciones</h1>
-        <p className="text-sm sm:text-base text-gray-600">
-          Solicitudes pendientes de su equipo a la espera de su decisión.
-        </p>
+        <h1 className="text-2xl font-bold text-text">Bandeja de aprobaciones</h1>
+        <p className="text-gray-600">Solicitudes pendientes de su equipo a la espera de su decisión.</p>
       </div>
 
       {loading ? (
@@ -54,8 +52,8 @@ export default function BandejaAprobaciones() {
         </Card>
       ) : (
         <>
-          {/* Vista para celular y tablet */}
-          <div className="lg:hidden space-y-3">
+          {/* Vista para celular */}
+          <div className="md:hidden space-y-3">
             {solicitudes.map((s) => {
               const antiguedad = diasAntiguedad(s.creado_en);
 
@@ -117,7 +115,7 @@ export default function BandejaAprobaciones() {
           </div>
 
           {/* Vista para pantallas grandes */}
-          <div className="hidden lg:block overflow-x-auto">
+          <div className="hidden md:block overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200 bg-white">
               <thead className="bg-gray-50 sticky top-0 z-10">
                 <tr>
@@ -138,19 +136,19 @@ export default function BandejaAprobaciones() {
                     <td className="px-4 py-3 text-sm text-text">{s.servidor || '—'}</td>
                     <td className="px-4 py-3 text-sm text-text">{s.unidad || '—'}</td>
                     <td className="px-4 py-3 text-sm text-text">{s.tipo_nombre || '—'}</td>
-                    <td className="px-4 py-3 text-sm text-text whitespace-nowrap">
+                    <td className="px-4 py-3 text-sm text-text">
                       {formatearFecha(s.fecha_inicio)} - {formatearFecha(s.fecha_fin)}
                     </td>
-                    <td className="px-4 py-3 text-sm text-text whitespace-nowrap">
+                    <td className="px-4 py-3 text-sm text-text">
                       {s.cantidad} {unidadLabel(s.unidad_medida || 'DIAS')}
                     </td>
-                    <td className="px-4 py-3 text-sm text-text whitespace-nowrap">
-                      {diasAntiguedad(s.creado_en)} días
+                    <td className="px-4 py-3 text-sm text-text">
+                      {Math.floor(Date.now() / 86400000) - Math.floor(new Date(s.creado_en).getTime() / 86400000)} días
                     </td>
                     <td className="px-4 py-3">
                       <Button
                         variant="outline"
-                        className="w-full whitespace-nowrap"
+                        className="w-full"
                         onClick={() => navigate(`/jefe/aprobaciones/${s.id_solicitud}`)}
                       >
                         Ver detalle
