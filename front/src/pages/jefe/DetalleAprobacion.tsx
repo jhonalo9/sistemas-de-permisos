@@ -5,7 +5,7 @@ import { Button, Badge, Card, ConfidentialBadge, useToast } from '@/components/c
 import VistaPreviaAdjunto from '@/components/adjuntos/VistaPreviaAdjunto';
 import ModalMotivo from '@/components/decisiones/ModalMotivo';
 import { formatearFecha, categoriaLabel, unidadLabel, acortarNombreArchivo } from '@/utils/format';
-import { FileText, Check, AlertTriangle, Eye } from 'lucide-react';
+import { FileText, Check, AlertTriangle, Eye, ArrowLeft } from 'lucide-react';
 
 export default function DetalleAprobacion() {
   const { id } = useParams();
@@ -44,6 +44,14 @@ export default function DetalleAprobacion() {
     }
   }
 
+  const volver = () => {
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate('/jefe/aprobaciones');
+    }
+  };
+
   if (!solicitud) {
     return (
       <div className="flex flex-col items-center justify-center py-20">
@@ -69,10 +77,21 @@ export default function DetalleAprobacion() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-text">Decisión de solicitud</h1>
-          <p className="text-gray-600">N.º {solicitud.nro_solicitud}</p>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={volver}
+            className="p-2 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-text shrink-0"
+            aria-label="Volver a la página anterior"
+            title="Volver"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <div>
+            <h1 className="text-2xl font-bold text-text">Decisión de solicitud</h1>
+            <p className="text-gray-600">N.º {solicitud.nro_solicitud}</p>
+          </div>
         </div>
         <Badge estado={solicitud.estado} className="px-4 py-2 text-base" />
       </div>
