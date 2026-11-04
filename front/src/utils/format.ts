@@ -115,3 +115,24 @@ export function asNum(valor: any, defecto = 0): number {
   const numero = Number(valor);
   return Number.isFinite(numero) ? numero : defecto;
 }
+
+/**
+ * Acorta nombres de archivo largos conservando la extensión.
+ * Ej: "certificado_medico_con_descanso_largo_2026.pdf" -> "certificado_medico_con_des…pdf"
+ */
+export function acortarNombreArchivo(nombre?: string | null, max = 34): string {
+  if (!nombre) return '';
+
+  const limpio = nombre.trim();
+  if (limpio.length <= max) return limpio;
+
+  const punto = limpio.lastIndexOf('.');
+  const tieneExtension = punto > 0 && limpio.length - punto <= 10;
+  const extension = tieneExtension ? limpio.slice(punto) : '';
+  const base = tieneExtension ? limpio.slice(0, punto) : limpio;
+
+  const limiteBase = Math.max(4, max - extension.length - 1);
+  if (base.length <= limiteBase) return limpio;
+
+  return `${base.slice(0, limiteBase).trimEnd()}…${extension}`;
+}

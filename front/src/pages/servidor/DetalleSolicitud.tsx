@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { apiClient, obtenerCodigoBarras } from '@/services/api';
 import { Button, Badge, Card, ConfidentialBadge, Input, TextArea, TimelineItem, useToast } from '@/components/common';
 import VistaPreviaAdjunto from '@/components/adjuntos/VistaPreviaAdjunto';
-import { formatearFecha, categoriaLabel } from '@/utils/format';
+import { formatearFecha, categoriaLabel, acortarNombreArchivo } from '@/utils/format';
 import { Copy, FileText, Eye } from 'lucide-react';
 
 export default function DetalleSolicitud() {
@@ -218,19 +218,24 @@ export default function DetalleSolicitud() {
           {solicitud.adjuntos && solicitud.adjuntos.length > 0 && (
             <Card>
               <h2 className="text-lg font-semibold text-text mb-4">Adjuntos</h2>
+              
               <div className="space-y-3">
                 {solicitud.adjuntos.map((a: any) => (
+                  
                   <div key={a.id_adjunto} className="flex items-center gap-3 p-3 bg-gray-50 rounded border border-gray-200">
-                    <FileText className="w-5 h-5 text-gray-400" />
-                    <div className="flex-1">
-                      <p className="font-medium text-text">{a.nombre_arch}</p>
-                      <p className="text-xs text-gray-500">{a.mime || ''} • {Math.round((a.tamano_bytes || 0) / 1024)} KB</p>
+                    <FileText className="w-5 h-5 text-gray-400 shrink-0" />
+                    
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-text truncate" title={a.nombre_arch}>
+                        {acortarNombreArchivo(a.nombre_arch)}
+                      </p>
+                      <p className="text-xs text-gray-500 truncate">{a.mime || ''} • {Math.round((a.tamano_bytes || 0) / 1024)} KB</p>
                     </div>
-                    {a.confidencial && <ConfidentialBadge />}
+                    
                     <button
                       type="button"
                       onClick={() => setAdjuntoVista(a)}
-                      className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
+                      className="inline-flex items-center gap-1 text-sm text-primary hover:underline shrink-0"
                     >
                       <Eye className="w-4 h-4" />
                       Ver evidencia

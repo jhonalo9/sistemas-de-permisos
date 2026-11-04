@@ -1575,7 +1575,9 @@ body {
 
 .bg-estado-anulada {
   --tw-bg-opacity: 1;
-  background-color: rgb(55 65 81 / var(--tw-bg-opacity, 1));
+  background-color: rgba(62, 12, 10, 0.586);
+  color: rgb(255 255 255 / var(--tw-bg-opacity, 1));
+  
 }
 
 .bg-estado-aprobada_jefe {

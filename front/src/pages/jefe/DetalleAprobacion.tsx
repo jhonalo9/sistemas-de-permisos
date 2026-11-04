@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { apiClient } from '@/services/api';
 import { Button, Badge, Card, ConfidentialBadge, useToast } from '@/components/common';
 import VistaPreviaAdjunto from '@/components/adjuntos/VistaPreviaAdjunto';
-import { formatearFecha, categoriaLabel, unidadLabel } from '@/utils/format';
+import { formatearFecha, categoriaLabel, unidadLabel, acortarNombreArchivo } from '@/utils/format';
 import { FileText, Check, AlertTriangle, Eye } from 'lucide-react';
 
 export default function DetalleAprobacion() {
@@ -136,16 +136,18 @@ export default function DetalleAprobacion() {
               <div className="space-y-3">
                 {adjuntos.map((a: any, i: number) => (
                   <div key={i} className="flex items-center gap-3 p-3 bg-gray-50 rounded border border-gray-200">
-                    <FileText className="w-5 h-5 text-gray-400" />
-                    <div className="flex-1">
-                      <p className="font-medium text-text">{a.nombre_arch}</p>
-                      <p className="text-xs text-gray-500">{a.mime || ''}</p>
+                    <FileText className="w-5 h-5 text-gray-400 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-text truncate" title={a.nombre_arch}>
+                        {acortarNombreArchivo(a.nombre_arch)}
+                      </p>
+                      <p className="text-xs text-gray-500 truncate">{a.mime || ''}</p>
                     </div>
                     {a.confidencial && <ConfidentialBadge />}
                     <button
                       type="button"
                       onClick={() => setAdjuntoVista(a)}
-                      className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
+                      className="inline-flex items-center gap-1 text-sm text-primary hover:underline shrink-0"
                     >
                       <Eye className="w-4 h-4" />
                       Ver evidencia
