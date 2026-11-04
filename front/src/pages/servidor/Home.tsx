@@ -146,7 +146,7 @@ export default function ServidorHome() {
     text-transform: uppercase;
     overflow: hidden;
     cursor: pointer;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition: transform 1s ease, box-shadow 1s ease;
   }
   .btn-uiverse:hover {
     opacity: .95;
@@ -162,7 +162,7 @@ export default function ServidorHome() {
   }
   .btn-uiverse .animation {
     border-radius: 100%;
-    animation: ripple 0.6s linear infinite;
+    animation: ripple 0.8s linear infinite;
   }
   @keyframes ripple {
     0% {
