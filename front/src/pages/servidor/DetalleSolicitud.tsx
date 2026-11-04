@@ -4,7 +4,7 @@ import { apiClient, obtenerCodigoBarras } from '@/services/api';
 import { Button, Badge, Card, ConfidentialBadge, Input, TextArea, TimelineItem, useToast } from '@/components/common';
 import VistaPreviaAdjunto from '@/components/adjuntos/VistaPreviaAdjunto';
 import { formatearFecha, categoriaLabel, acortarNombreArchivo } from '@/utils/format';
-import { Copy, FileText, Eye } from 'lucide-react';
+import { Copy, FileText, Eye, ArrowLeft } from 'lucide-react';
 
 export default function DetalleSolicitud() {
   const { id } = useParams();
@@ -100,6 +100,14 @@ export default function DetalleSolicitud() {
     };
   }, [barcodeUrl]);
 
+  const volver = () => {
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate('/servidor/mis-solicitudes');
+    }
+  };
+
   if (!solicitud) {
     return (
       <div className="flex flex-col items-center justify-center py-20">
@@ -127,10 +135,21 @@ export default function DetalleSolicitud() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-text">Detalle de solicitud</h1>
-          <p className="text-gray-600">N.º {solicitud.nro_solicitud}</p>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={volver}
+            className="p-2 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-text shrink-0"
+            aria-label="Volver a la página anterior"
+            title="Volver"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <div>
+            <h1 className="text-2xl font-bold text-text">Detalle de solicitud</h1>
+            <p className="text-gray-600">N.º {solicitud.nro_solicitud}</p>
+          </div>
         </div>
         <Badge estado={solicitud.estado} className="px-4 py-2 text-base" />
       </div>
