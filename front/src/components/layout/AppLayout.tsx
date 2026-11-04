@@ -104,8 +104,12 @@ export function Sidebar() {
     <aside className="fixed inset-y-0 left-0 z-50 w-64 bg-gradient-to-b from-primary-700 via-primary-600 to-primary-800 text-white hidden lg:flex lg:flex-col shadow-elevated">
       <div className="px-5 py-6 border-b border-white/10">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-soft">
-            <Building className="w-5 h-5 text-primary-600" />
+          <div >
+            <img
+              src="/sol-logo.png"
+              alt="Logo municipal"
+              className="w-11 h-15 object-contain"
+            />
           </div>
           <div>
             <span className="font-bold text-lg tracking-tight leading-none">MUNI SOL</span>
@@ -222,8 +226,12 @@ export function MobileMenu({ isOpen, onClose }: { isOpen: boolean; onClose: () =
       <div className="absolute inset-y-0 left-0 w-[280px] max-w-[85vw] bg-white shadow-elevated flex flex-col animate-slide-up">
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 bg-primary-600 rounded-xl flex items-center justify-center">
-              <Building className="w-5 h-5 text-white" />
+            <div >
+               <img
+              src="/sol-logo.png"
+              alt="Logo municipal"
+              className="w-11 h-15 object-contain"
+            />
             </div>
             <div>
               <span className="font-bold text-text">MUNI SOL</span>

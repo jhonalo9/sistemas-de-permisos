@@ -89,7 +89,7 @@ $funcionario = $s['jefe'] ?? '';
 
 
   .signatures td { height:64px; vertical-align:bottom; text-align:center; font-size:8px; font-weight:bold; text-transform:uppercase; }
-  .signatures .fecha-emision { font-size:9px; font-weight:normal; text-transform:none; }
+  .signatures .fecha-emision { font-size:15px; font-weight:normal; text-transform:none; top:-7px; position:relative; }
   .note-table td { border-top:0; font-size:8px; line-height:1.35; text-align:justify; text-transform:uppercase; }
   .sello { position:absolute; top:34%; left:20%; transform:rotate(-30deg);
     font-size:34px; color:rgba(220,38,38,0.22); font-weight:bold; text-align:center;
@@ -194,7 +194,7 @@ $funcionario = $s['jefe'] ?? '';
     <table class="form signatures">
     <!-- Espacio para las firmas -->
     <tr class="signature-space">
-        <td style="width:18%;"></td>
+        <td style="width:18%;"><span class="fecha-emision"><?= esc($fechaEmision) ?></span></td>
         <td style="width:18%;"></td>
         <td style="width:20%;"></td>
         <td style="width:18%;"></td>
@@ -203,7 +203,7 @@ $funcionario = $s['jefe'] ?? '';
 
     <!-- Textos debajo de las líneas -->
     <tr class="signature-labels">
-        <td>FECHA<br><span class="fecha-emision"><?= esc($fechaEmision) ?></span></td>
+        <td>FECHA<br></td>
         <td>CONTROL DE PERSONAL</td>
         <td>JEFE INMEDIATO</td>
         <td>V.° B.° G.G.R.H.</td>
