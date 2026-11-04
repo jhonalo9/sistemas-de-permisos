@@ -122,11 +122,74 @@ export default function ServidorHome() {
       </div>
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <h2 className="text-lg font-semibold text-text">Últimas solicitudes</h2>
-        <Button variant="primary" className="sm:min-w-[180px]" onClick={() => navigate('/servidor/nueva')}>
-          Nueva solicitud
-        </Button>
-      </div>
+  <h2 className="text-lg font-semibold text-text">Últimas solicitudes</h2>
+
+  <style>{`
+  .btn-uiverse {
+    outline: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #1B4F9C;
+    min-width: 200px;
+    border: 0;
+    border-radius: 4px;
+    /* Sombra más notoria */
+    box-shadow: 0 6px 16px rgba(27, 79, 156, 0.35),
+                0 2px 6px rgba(0, 0, 0, 0.15);
+    box-sizing: border-box;
+    padding: 16px 20px;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .btn-uiverse:hover {
+    opacity: .95;
+    /* Sombra aún más elevada al pasar el mouse */
+    box-shadow: 0 10px 22px rgba(27, 79, 156, 0.45),
+                0 4px 10px rgba(0, 0, 0, 0.2);
+    transform: translateY(-1px);
+  }
+  .btn-uiverse:active {
+    transform: translateY(0);
+    box-shadow: 0 4px 10px rgba(27, 79, 156, 0.35),
+                0 1px 3px rgba(0, 0, 0, 0.15);
+  }
+  .btn-uiverse .animation {
+    border-radius: 100%;
+    animation: ripple 0.6s linear infinite;
+  }
+  @keyframes ripple {
+    0% {
+      box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.1),
+                  0 0 0 20px rgba(255, 255, 255, 0.1),
+                  0 0 0 40px rgba(255, 255, 255, 0.1),
+                  0 0 0 60px rgba(255, 255, 255, 0.1);
+    }
+    100% {
+      box-shadow: 0 0 0 20px rgba(255, 255, 255, 0.1),
+                  0 0 0 40px rgba(255, 255, 255, 0.1),
+                  0 0 0 60px rgba(255, 255, 255, 0.1),
+                  0 0 0 80px rgba(255, 255, 255, 0);
+    }
+  }
+`}</style>
+
+  <button
+    type="button"
+    className="btn-uiverse sm:min-w-[200px]"
+    onClick={() => navigate('/servidor/nueva')}
+  >
+    <i className="animation" aria-hidden="true" />
+    Nueva solicitud
+    <i className="animation" aria-hidden="true" />
+  </button>
+</div>
 
       <div className="overflow-x-auto rounded-2xl border border-border/80 bg-white shadow-card">
         <table className="min-w-full divide-y divide-border">
