@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { apiClient } from '@/services/api';
 import { Button, Badge, Card, ConfidentialBadge, useToast } from '@/components/common';
 import VistaPreviaAdjunto from '@/components/adjuntos/VistaPreviaAdjunto';
+import ModalMotivo from '@/components/decisiones/ModalMotivo';
 import { formatearFecha, estadoLabel, estadoColor, categoriaLabel, unidadLabel, errorMessage, acortarNombreArchivo } from '@/utils/format';
 import { FileText, Clock, Check, AlertTriangle, Mail, User, Eye } from 'lucide-react';
 import { useForm } from 'react-hook-form';
@@ -16,6 +17,7 @@ export default function ValidarSolicitud() {
   const [solicitud, setSolicitud] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(true);
   const [adjuntoVista, setAdjuntoVista] = React.useState<any | null>(null);
+  const [motivoModal, setMotivoModal] = React.useState<'observar' | 'rechazar' | null>(null);
 
   const {
     register,
@@ -61,33 +63,31 @@ export default function ValidarSolicitud() {
     }
   };
 
-  const onObservar = async () => {
-    const c = window.prompt('Indique el motivo de la observación:');
-    if (!c) return;
+  const onObservar = async (comentario: string) => {
     try {
       await apiClient<any>(`/rrhh/${id}/observar`, {
         method: 'POST',
-        body: { comentario: c },
+        body: { comentario },
       });
       toast.success('Solicitud observada', 'Se ha registrado la observación.');
       navigate('/rrhh/bandeja');
     } catch (e: any) {
       toast.error('Error al observar', e.mensaje);
+      throw e;
     }
   };
 
-  const onRechazar = async () => {
-    const c = window.prompt('Indique el motivo del rechazo:');
-    if (!c) return;
+  const onRechazar = async (motivo: string) => {
     try {
       await apiClient<any>(`/rrhh/${id}/rechazar`, {
         method: 'POST',
-        body: { motivo: c },
+        body: { motivo },
       });
       toast.success('Solicitud rechazada', 'Se ha rechazado la solicitud.');
       navigate('/rrhh/bandeja');
     } catch (e: any) {
       toast.error('Error al rechazar', e.mensaje);
+      throw e;
     }
   };
 
@@ -100,6 +100,7 @@ export default function ValidarSolicitud() {
   }
 
   const esEmergencia = solicitud.tipo?.codigo === 'PER_EMERGENCIA';
+  const esRechazo = motivoModal === 'rechazar';
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
@@ -239,10 +240,10 @@ export default function ValidarSolicitud() {
           </Card>
 
           <div className="flex gap-2">
-            <Button variant="outline" onClick={onObservar} className="w-full">
+            <Button variant="outline" onClick={() => setMotivoModal('observar')} className="w-full">
               Observar
             </Button>
-            <Button variant="danger" onClick={onRechazar} className="w-full">
+            <Button variant="danger" onClick={() => setMotivoModal('rechazar')} className="w-full">
               Rechazar
             </Button>
           </div>
@@ -257,6 +258,29 @@ export default function ValidarSolicitud() {
         idSolicitud={solicitud.id_solicitud}
         adjunto={adjuntoVista}
         onClose={() => setAdjuntoVista(null)}
+      />
+
+      <ModalMotivo
+        isOpen={motivoModal !== null}
+        onClose={() => setMotivoModal(null)}
+        titulo={esRechazo ? 'Rechazar solicitud' : 'Observar solicitud'}
+        descripcion={
+          esRechazo
+            ? 'Indique el motivo del rechazo. La solicitud quedará descartada.'
+            : 'Indique el motivo de la observación. El servidor deberá corregir y reenviar.'
+        }
+        etiqueta={esRechazo ? 'Motivo del rechazo' : 'Motivo de la observación'}
+        placeholder={
+          esRechazo
+            ? 'Explique por qué se rechaza la solicitud...'
+            : 'Explique qué debe corregir el servidor...'
+        }
+        confirmarTexto={esRechazo ? 'Rechazar solicitud' : 'Registrar observación'}
+        peligro={esRechazo}
+        onConfirm={(motivo) => {
+          if (!motivoModal) return;
+          return motivoModal === 'rechazar' ? onRechazar(motivo) : onObservar(motivo);
+        }}
       />
     </div>
   );

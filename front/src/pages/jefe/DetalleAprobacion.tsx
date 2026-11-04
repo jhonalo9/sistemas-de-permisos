@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { apiClient } from '@/services/api';
 import { Button, Badge, Card, ConfidentialBadge, useToast } from '@/components/common';
 import VistaPreviaAdjunto from '@/components/adjuntos/VistaPreviaAdjunto';
+import ModalMotivo from '@/components/decisiones/ModalMotivo';
 import { formatearFecha, categoriaLabel, unidadLabel, acortarNombreArchivo } from '@/utils/format';
 import { FileText, Check, AlertTriangle, Eye } from 'lucide-react';
 
@@ -13,6 +14,7 @@ export default function DetalleAprobacion() {
   const [solicitud, setSolicitud] = React.useState<any>(null);
   const [equipo, setEquipo] = React.useState<any[]>([]);
   const [adjuntoVista, setAdjuntoVista] = React.useState<any | null>(null);
+  const [motivoModal, setMotivoModal] = React.useState<'observar' | 'rechazar' | null>(null);
 
   React.useEffect(() => {
     const cargarDetalle = async (idSolicitud: number) => {
@@ -38,6 +40,7 @@ export default function DetalleAprobacion() {
       navigate('/jefe/aprobaciones');
     } catch (e: any) {
       toast.error('Error al registrar decisión', e.mensaje);
+      throw e;
     }
   }
 
@@ -62,6 +65,7 @@ export default function DetalleAprobacion() {
     || '—';
 
   const adjuntos = solicitud.adjuntos || [];
+  const esRechazo = motivoModal === 'rechazar';
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
@@ -181,21 +185,21 @@ export default function DetalleAprobacion() {
             <h3 className="text-sm font-semibold text-text uppercase tracking-wider mb-4">Acciones</h3>
             {solicitud.estado === 'PENDIENTE' ? (
               <div className="space-y-3">
-                <Button variant="primary" className="w-full" onClick={() => decidir('aprobar')}>
+                <Button
+                  variant="primary"
+                  className="w-full"
+                  onClick={() => {
+                    decidir('aprobar').catch(() => undefined);
+                  }}
+                >
                   <Check className="w-4 h-4 mr-2" />
                   Aprobar solicitud
                 </Button>
-                <Button variant="outline" className="w-full" onClick={() => {
-                  const c = window.prompt('Indique el motivo de la observación:');
-                  if (c) decidir('observar', c);
-                }}>
+                <Button variant="outline" className="w-full" onClick={() => setMotivoModal('observar')}>
                   <AlertTriangle className="w-4 h-4 mr-2" />
                   Observar (comentario obligatorio)
                 </Button>
-                <Button variant="danger" className="w-full" onClick={() => {
-                  const c = window.prompt('Indique el motivo del rechazo:');
-                  if (c) decidir('rechazar', c);
-                }}>
+                <Button variant="danger" className="w-full" onClick={() => setMotivoModal('rechazar')}>
                   Rechazar solicitud
                 </Button>
               </div>
@@ -216,6 +220,29 @@ export default function DetalleAprobacion() {
         idSolicitud={solicitud.id_solicitud}
         adjunto={adjuntoVista}
         onClose={() => setAdjuntoVista(null)}
+      />
+
+      <ModalMotivo
+        isOpen={motivoModal !== null}
+        onClose={() => setMotivoModal(null)}
+        titulo={esRechazo ? 'Rechazar solicitud' : 'Observar solicitud'}
+        descripcion={
+          esRechazo
+            ? 'Indique el motivo del rechazo. La solicitud quedará descartada.'
+            : 'Indique el motivo de la observación. El servidor deberá corregir y reenviar.'
+        }
+        etiqueta={esRechazo ? 'Motivo del rechazo' : 'Motivo de la observación'}
+        placeholder={
+          esRechazo
+            ? 'Explique por qué se rechaza la solicitud...'
+            : 'Explique qué debe corregir el servidor...'
+        }
+        confirmarTexto={esRechazo ? 'Rechazar solicitud' : 'Registrar observación'}
+        peligro={esRechazo}
+        onConfirm={(motivo) => {
+          if (!motivoModal) return;
+          return decidir(motivoModal, motivo);
+        }}
       />
     </div>
   );
