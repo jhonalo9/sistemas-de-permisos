@@ -1,5 +1,7 @@
 ### Cuentas de prueba
 
+5 roles
+
 | DNI | Contraseña | Rol |
 |---|---|---|
 | `admin` | `Admin2026!` | Administrador |
