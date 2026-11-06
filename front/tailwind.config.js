@@ -41,9 +41,9 @@ module.exports = {
           aprobada_jefe: '#4ADE80',
           aprobada_rrhh: '#22C55E',
           en_curso: '#22D3EE',
-          ejecutada: '#15803D',
+          ejecutada: 'rgb(0 220 82)',
           rechazada: '#EF4444',
-          anulada: '#374151',
+          anulada: 'rgb(170 170 170)',
         },
       },
       fontSize: {

@@ -121,7 +121,7 @@ export default function ServidorHome() {
         </Card>
       </div>
 
-      <div className="flex flex-col  sm:items-center justify-between gap-3">
+      <div className="flex flex-col sm:items-center justify-between gap-3">
   <h2 className="text-lg font-semibold text-text">Últimas solicitudes</h2>
 
   <style>{`
