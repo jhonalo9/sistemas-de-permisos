@@ -39,6 +39,43 @@ export default function MisSolicitudes() {
 
   const filtradas = solicitudes.filter((s) => !filtroEstado || s.estado === filtroEstado);
 
+  const renderAccion = (s: any, className = '') => {
+    if (s.estado === 'BORRADOR') {
+      return (
+        <Button
+          variant="outline"
+          className={className}
+          onClick={() => navigate(`/servidor/borradores/${s.id_solicitud}`)}
+        >
+          Continuar
+        </Button>
+      );
+    }
+
+    if (s.estado === 'REGULARIZAR') {
+      return (
+        <Button
+          variant="primary"
+          className={className}
+          onClick={() => navigate('/servidor/regularizar')}
+        >
+          <Clock className="w-4 h-4 mr-1" />
+          Regularizar
+        </Button>
+      );
+    }
+
+    return (
+      <Button
+        variant="outline"
+        className={className}
+        onClick={() => navigate(`/servidor/mis-solicitudes/${s.id_solicitud}`)}
+      >
+        Ver
+      </Button>
+    );
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -83,61 +120,87 @@ export default function MisSolicitudes() {
           <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
         </div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200 bg-white">
-            <thead className="bg-gray-50 sticky top-0 z-10">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">N.º solicitud</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Tipo</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Fechas</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Cantidad</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Estado</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Acción</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filtradas.length > 0 ? (
-                filtradas.map((s) => (
-                  <tr key={s.id_solicitud} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 text-sm font-medium text-text">{s.nro_solicitud}</td>
-                    <td className="px-4 py-3 text-sm text-text">{s.tipo?.nombre || '—'}</td>
-                    <td className="px-4 py-3 text-sm text-text">
-                      {formatearFecha(s.fecha_inicio)} - {formatearFecha(s.fecha_fin)}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-text">
+        <>
+          {/* Vista para celular */}
+          <div className="md:hidden space-y-3">
+            {filtradas.length === 0 ? (
+              <Card className="text-center py-8">
+                <p className="text-sm text-gray-500">No se encontraron solicitudes.</p>
+              </Card>
+            ) : (
+              filtradas.map((s) => (
+                <Card key={s.id_solicitud} className="p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-xs text-gray-500 uppercase">Solicitud</p>
+                      <p className="font-semibold text-text mt-0.5">{s.nro_solicitud}</p>
+                    </div>
+                    <Badge estado={s.estado} />
+                  </div>
+
+                  <p className="font-medium text-text mt-3">{s.tipo?.nombre || '—'}</p>
+
+                  <div className="flex items-end justify-between gap-3 mt-2 text-sm">
+                    <span className="text-gray-600">
+                      {formatearFecha(s.fecha_inicio)} – {formatearFecha(s.fecha_fin)}
+                    </span>
+                    <span className="font-semibold text-text whitespace-nowrap">
                       {s.cantidad} {unidadLabel(s.tipo?.unidad_medida || 'DIAS')}
-                    </td>
-                    <td className="px-4 py-3">
-                      <Badge estado={s.estado} />
-                    </td>
-                    <td className="px-4 py-3">
-                      {s.estado === 'BORRADOR' ? (
-                        <Button variant="outline" onClick={() => navigate(`/servidor/borradores/${s.id_solicitud}`)}>
-                          Continuar
-                        </Button>
-                      ) : s.estado === 'REGULARIZAR' ? (
-                        <Button variant="primary" onClick={() => navigate('/servidor/regularizar')}>
-                          <Clock className="w-4 h-4 mr-1" />
-                          Regularizar
-                        </Button>
-                      ) : (
-                        <Button variant="outline" onClick={() => navigate(`/servidor/mis-solicitudes/${s.id_solicitud}`)}>
-                          Ver
-                        </Button>
-                      )}
+                    </span>
+                  </div>
+
+                  <div className="mt-4">
+                    {renderAccion(s, 'w-full')}
+                  </div>
+                </Card>
+              ))
+            )}
+          </div>
+
+          {/* Vista para escritorio */}
+          <div className="hidden md:block overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200 bg-white">
+              <thead className="bg-gray-50 sticky top-0 z-10">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">N.º solicitud</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Tipo</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Fechas</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Cantidad</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Estado</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Acción</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filtradas.length > 0 ? (
+                  filtradas.map((s) => (
+                    <tr key={s.id_solicitud} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 text-sm font-medium text-text">{s.nro_solicitud}</td>
+                      <td className="px-4 py-3 text-sm text-text">{s.tipo?.nombre || '—'}</td>
+                      <td className="px-4 py-3 text-sm text-text">
+                        {formatearFecha(s.fecha_inicio)} - {formatearFecha(s.fecha_fin)}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-text">
+                        {s.cantidad} {unidadLabel(s.tipo?.unidad_medida || 'DIAS')}
+                      </td>
+                      <td className="px-4 py-3">
+                        <Badge estado={s.estado} />
+                      </td>
+                      <td className="px-4 py-3">
+                        {renderAccion(s)}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
+                      No se encontraron solicitudes.
                     </td>
                   </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
-                    No se encontraron solicitudes.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
     </div>
   );
