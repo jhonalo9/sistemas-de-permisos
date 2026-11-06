@@ -152,7 +152,7 @@ export default function CompletarRegularizacion() {
               </Card>
 
               {seleccionada && (
-                <Card>
+                <Card className="order-first md:order-none">
                   <h2 className="text-lg font-semibold text-text mb-4">
                     Datos de la regularización
                   </h2>
@@ -186,66 +186,106 @@ export default function CompletarRegularizacion() {
               <p className="text-gray-600">Aún no tiene salidas regularizadas.</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
-                      N.º solicitud
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
-                      Tipo definitivo
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
-                      Salida
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
-                      Cantidad
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
-                      Estado
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
-                      Acción
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {historial.map((h) => (
-                    <tr key={h.id_solicitud} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 text-sm font-medium text-text">
-                        {h.nro_solicitud}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-text">
-                        <p>{h.tipo_nombre || '—'}</p>
-                        <p className="text-xs text-gray-500">{h.unidad || ''}</p>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-text whitespace-nowrap">
-                        <p>{formatearFecha(h.fecha_inicio)}</p>
-                        <p className="text-xs text-gray-500">
-                          {(h.hora_inicio || '').slice(0, 5)}
-                          {h.hora_fin ? ` - ${(h.hora_fin || '').slice(0, 5)}` : ''}
-                        </p>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-text whitespace-nowrap">
+            <>
+              {/* Vista para celular */}
+              <div className="md:hidden p-4 space-y-3">
+                {historial.map((h) => (
+                  <div key={h.id_solicitud} className="rounded-xl border border-gray-200 p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-xs text-gray-500 uppercase">Solicitud</p>
+                        <p className="font-semibold text-text mt-0.5">{h.nro_solicitud}</p>
+                      </div>
+                      <Badge estado={h.estado} />
+                    </div>
+
+                    <p className="font-medium text-text mt-3">{h.tipo_nombre || '—'}</p>
+                    <p className="text-xs text-gray-500">{h.unidad || ''}</p>
+
+                    <div className="flex items-end justify-between gap-3 mt-2 text-sm">
+                      <span className="text-gray-600">
+                        {formatearFecha(h.fecha_inicio)}
+                        {h.hora_inicio ? ` · ${(h.hora_inicio || '').slice(0, 5)}` : ''}
+                        {h.hora_fin ? ` - ${(h.hora_fin || '').slice(0, 5)}` : ''}
+                      </span>
+                      <span className="font-semibold text-text whitespace-nowrap">
                         {h.cantidad} {unidadLabel(h.unidad_medida || 'DIAS')}
-                      </td>
-                      <td className="px-4 py-3">
-                        <Badge estado={h.estado} />
-                      </td>
-                      <td className="px-4 py-3">
-                        <Button
-                          variant="outline"
-                          onClick={() => navigate(`/servidor/mis-solicitudes/${h.id_solicitud}`)}
-                        >
-                          Ver
-                        </Button>
-                      </td>
+                      </span>
+                    </div>
+
+                    <Button
+                      variant="outline"
+                      className="w-full mt-4"
+                      onClick={() => navigate(`/servidor/mis-solicitudes/${h.id_solicitud}`)}
+                    >
+                      Ver
+                    </Button>
+                  </div>
+                ))}
+              </div>
+
+              {/* Vista para escritorio */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                        N.º solicitud
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                        Tipo definitivo
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                        Salida
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                        Cantidad
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                        Estado
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                        Acción
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {historial.map((h) => (
+                      <tr key={h.id_solicitud} className="hover:bg-gray-50">
+                        <td className="px-4 py-3 text-sm font-medium text-text">
+                          {h.nro_solicitud}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-text">
+                          <p>{h.tipo_nombre || '—'}</p>
+                          <p className="text-xs text-gray-500">{h.unidad || ''}</p>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-text whitespace-nowrap">
+                          <p>{formatearFecha(h.fecha_inicio)}</p>
+                          <p className="text-xs text-gray-500">
+                            {(h.hora_inicio || '').slice(0, 5)}
+                            {h.hora_fin ? ` - ${(h.hora_fin || '').slice(0, 5)}` : ''}
+                          </p>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-text whitespace-nowrap">
+                          {h.cantidad} {unidadLabel(h.unidad_medida || 'DIAS')}
+                        </td>
+                        <td className="px-4 py-3">
+                          <Badge estado={h.estado} />
+                        </td>
+                        <td className="px-4 py-3">
+                          <Button
+                            variant="outline"
+                            onClick={() => navigate(`/servidor/mis-solicitudes/${h.id_solicitud}`)}
+                          >
+                            Ver
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </Card>
       )}
