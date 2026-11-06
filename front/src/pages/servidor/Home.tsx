@@ -4,7 +4,8 @@ import { apiClient } from '@/services/api';
 import { useAuthStore } from '@/store/auth';
 import { Button, Badge, Card, ProgressBar, useToast } from '@/components/common';
 import { formatearFecha, unidadLabel } from '@/utils/format';
-import { AlertTriangle, Clock, FileText, CheckCircle2 } from 'lucide-react';
+import { AlertTriangle, Clock, FileText, CheckCircle2, BarChart3, LayoutGrid } from 'lucide-react';
+import GraficoSemicirculo from '@/components/saldos/GraficoSemicirculo';
 
 export default function ServidorHome() {
   const { usuario } = useAuthStore();
@@ -13,6 +14,7 @@ export default function ServidorHome() {
   const [saldos, setSaldos] = React.useState<any[]>([]);
   const [solicitudes, setSolicitudes] = React.useState<any[]>([]);
   const [regularizaciones, setRegularizaciones] = React.useState<any[]>([]);
+  const [vistaSaldos, setVistaSaldos] = React.useState<'tarjetas' | 'graficos'>('tarjetas');
   const [loading, setLoading] = React.useState(true);
 
   const cargarDatos = useCallback(async () => {
@@ -263,23 +265,51 @@ export default function ServidorHome() {
 
       {saldos.length > 0 && (
         <div>
-          <h2 className="text-lg font-semibold text-text mb-4">Mis saldos por tipo</h2>
-          <div className="space-y-4">
-            {saldos.map((s) => (
-              <Card key={s.id_saldo} className="p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="font-medium text-text">{s.tipo?.nombre}</span>
-                  <span className="text-sm font-semibold text-primary">
-                    {s.usado}/{s.asignado} {unidadLabel(s.tipo?.unidad_medida || 'DIAS')}
-                  </span>
-                </div>
-                <ProgressBar valor={s.usado} maximo={s.asignado} />
-                <p className="text-xs text-gray-500 mt-1">
-                  Disponible: {s.asignado - s.usado} {unidadLabel(s.tipo?.unidad_medida || 'DIAS')}
-                </p>
-              </Card>
-            ))}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+            <h2 className="text-lg font-semibold text-text">Mis saldos por tipo</h2>
+            <Button
+              variant="outline"
+              onClick={() => setVistaSaldos((vista) => (vista === 'tarjetas' ? 'graficos' : 'tarjetas'))}
+              aria-pressed={vistaSaldos === 'graficos'}
+            >
+              {vistaSaldos === 'tarjetas' ? (
+                <>
+                  <BarChart3 className="w-4 h-4" />
+                  Ver gráficas
+                </>
+              ) : (
+                <>
+                  <LayoutGrid className="w-4 h-4" />
+                  Ver tarjetas
+                </>
+              )}
+            </Button>
           </div>
+
+          {vistaSaldos === 'tarjetas' ? (
+            <div className="space-y-4">
+              {saldos.map((s) => (
+                <Card key={s.id_saldo} className="p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="font-medium text-text">{s.tipo?.nombre}</span>
+                    <span className="text-sm font-semibold text-primary">
+                      {s.usado}/{s.asignado} {unidadLabel(s.tipo?.unidad_medida || 'DIAS')}
+                    </span>
+                  </div>
+                  <ProgressBar valor={s.usado} maximo={s.asignado} />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Disponible: {s.asignado - s.usado} {unidadLabel(s.tipo?.unidad_medida || 'DIAS')}
+                  </p>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {saldos.map((s) => (
+                <GraficoSemicirculo key={s.id_saldo} saldo={s} />
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
