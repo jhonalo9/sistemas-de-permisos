@@ -129,6 +129,15 @@ class RegularizacionService
         }
 
         $svc = new SolicitudService();
+
+        $svc->validarCruceHorario((int) $s['id_servidor'], array_merge($s, $d, [
+            'id_tipo'     => $idTipo,
+            'fecha_inicio' => $fechaInicio,
+            'fecha_fin'    => $fechaFin,
+            'hora_inicio'  => ! empty($d['hora_inicio']) ? $d['hora_inicio'] : $s['hora_inicio'],
+            'hora_fin'     => ! empty($d['hora_fin']) ? $d['hora_fin'] : $s['hora_fin'],
+        ]), $idSolicitud);
+
         if (! empty($tipo['requiere_sustento']) && $archivos === [] && $svc->contarAdjuntos($idSolicitud) < 1) {
             throw new \RuntimeException('Debe adjuntar el documento de sustento.');
         }

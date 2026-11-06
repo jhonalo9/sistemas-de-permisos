@@ -30,6 +30,7 @@ class SolicitudService
                 if (empty($sv['id_jefe'])) {
                     throw new \RuntimeException('El servidor no tiene jefe inmediato asignado.');
                 }
+                $this->validarCruceHorario($idServidor, $datos);
                 $snapshots = $this->snapshots($sv);
             }
 
@@ -134,6 +135,8 @@ class SolicitudService
             throw new \RuntimeException('El servidor no tiene jefe inmediato asignado.');
         }
 
+        $this->validarCruceHorario((int) $s['id_servidor'], $s, $idSolicitud);
+
         $db = db_connect();
         $db->transBegin();
         try {
@@ -178,6 +181,122 @@ class SolicitudService
             $db->transRollback();
             throw $e;
         }
+    }
+
+    /**
+     * Impide registrar dos solicitudes del mismo servidor con fechas y horas que se crucen.
+     * Las licencias por días bloquean cualquier permiso por horas dentro de esas fechas.
+     */
+    public function validarCruceHorario(int $idServidor, array $datos, ?int $excluirId = null): void
+    {
+        $fechaInicio = $datos['fecha_inicio'] ?? null;
+        $fechaFin    = $datos['fecha_fin'] ?? $fechaInicio;
+        $idTipo      = (int) ($datos['id_tipo'] ?? 0);
+
+        if (empty($fechaInicio) || empty($fechaFin) || $idTipo <= 0) {
+            return;
+        }
+
+        $tipoNuevo = db_connect()->table('permiso_tipo_solicitud')
+            ->where('id_tipo', $idTipo)
+            ->get()->getRowArray();
+        if (! $tipoNuevo) {
+            return;
+        }
+
+        $esHorasNuevo = ($tipoNuevo['unidad_medida'] ?? '') === 'HORAS';
+        $nuevoInicio  = $esHorasNuevo ? $this->minutos($datos['hora_inicio'] ?? null) : null;
+        $nuevoFin     = $esHorasNuevo ? $this->minutos($datos['hora_fin'] ?? null) : null;
+
+        // Si todavía no tiene horas completas, el control de horas se hará al enviar.
+        if ($esHorasNuevo && ($nuevoInicio === null || $nuevoFin === null)) {
+            return;
+        }
+
+        $b = db_connect()->table('permiso_solicitud_papeleta s')
+            ->select('s.id_solicitud, s.nro_solicitud, s.fecha_inicio, s.fecha_fin,
+                      s.hora_inicio, s.hora_fin, t.unidad_medida')
+            ->join('permiso_tipo_solicitud t', 't.id_tipo = s.id_tipo')
+            ->where('s.id_servidor', $idServidor)
+            ->whereIn('s.estado', [
+                'PENDIENTE', 'OBSERVADA', 'APROBADA_JEFE', 'APROBADA_RRHH',
+                'REGULARIZAR', 'EN_CURSO', 'EJECUTADA',
+            ])
+            ->where('s.fecha_inicio <=', $fechaFin)
+            ->where('s.fecha_fin >=', $fechaInicio);
+
+        if ($excluirId !== null) {
+            $b->where('s.id_solicitud !=', $excluirId);
+        }
+
+        $solicitudes = $b->get()->getResultArray();
+
+        foreach ($solicitudes as $solicitud) {
+            $conflicto = true;
+
+            if ($esHorasNuevo) {
+                $esHorasExistente = ($solicitud['unidad_medida'] ?? '') === 'HORAS';
+                if ($esHorasExistente) {
+                    $existenteInicio = $this->minutos($solicitud['hora_inicio'] ?? null);
+                    $existenteFin    = $this->minutos($solicitud['hora_fin'] ?? null);
+
+                    $conflicto = $existenteInicio === null
+                        || $existenteFin === null
+                        || $this->rangosSeCruzan($nuevoInicio, $nuevoFin, $existenteInicio, $existenteFin);
+                }
+            }
+
+            if (! $conflicto) {
+                continue;
+            }
+
+            $detalle = $this->detalleCruce($solicitud);
+            throw new \RuntimeException(
+                'Ya tiene una solicitud que se cruza en ese horario: '
+                . $solicitud['nro_solicitud'] . $detalle . '.'
+            );
+        }
+    }
+
+    private function minutos(?string $hora): ?int
+    {
+        if ($hora === null || $hora === '') {
+            return null;
+        }
+
+        $partes = explode(':', substr($hora, 0, 5));
+        if (count($partes) < 2) {
+            return null;
+        }
+
+        $h = (int) $partes[0];
+        $m = (int) $partes[1];
+        if ($h < 0 || $h > 23 || $m < 0 || $m > 59) {
+            return null;
+        }
+
+        return $h * 60 + $m;
+    }
+
+    private function rangosSeCruzan(int $inicioA, int $finA, int $inicioB, int $finB): bool
+    {
+        if ($finA <= $inicioA) $finA += 24 * 60;
+        if ($finB <= $inicioB) $finB += 24 * 60;
+
+        return ($inicioA < $finB && $finA > $inicioB)
+            || ($inicioA + 24 * 60 < $finB && $finA + 24 * 60 > $inicioB);
+    }
+
+    private function detalleCruce(array $s): string
+    {
+        $inicio = substr((string) ($s['hora_inicio'] ?? ''), 0, 5);
+        $fin    = substr((string) ($s['hora_fin'] ?? ''), 0, 5);
+
+        if ($inicio !== '' && $fin !== '') {
+            return ' (' . $inicio . ' - ' . $fin . ')';
+        }
+
+        return ' (' . $s['fecha_inicio'] . ' al ' . $s['fecha_fin'] . ')';
     }
 
     public function consumirSaldo(int $idSolicitud): void

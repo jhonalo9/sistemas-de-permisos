@@ -286,6 +286,12 @@ class SolicitudesController extends BaseApiController
             return ApiResponse::error('Debe adjuntar el documento de sustento.', 422);
         }
 
+        try {
+            $svc->validarCruceHorario((int) $s['id_servidor'], $merged, $id);
+        } catch (\RuntimeException $e) {
+            return ApiResponse::error($e->getMessage(), 422);
+        }
+
         $db = db_connect();
         $db->transBegin();
         try {

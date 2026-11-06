@@ -90,6 +90,12 @@ class RrhhController extends BaseApiController
         }
 
         $svc = new SolicitudService();
+        try {
+            $svc->validarCruceHorario((int) $s['id_servidor'], $s, $id);
+        } catch (\RuntimeException $e) {
+            return ApiResponse::error($e->getMessage(), 422);
+        }
+
         $svc->cambiarEstado($id, 'APROBADA_RRHH', $this->idUsuario(), 'Aprobada por RRHH.', [
             'nro_resolucion'   => $d['nro_resolucion'],
             'fecha_resolucion' => $d['fecha_resolucion'],
