@@ -191,7 +191,38 @@ export default function ServidorHome() {
   </button>
 </div>
 
-      <div className="overflow-x-auto rounded-2xl border border-border/80 bg-white shadow-card">
+      {/* Vista de últimas solicitudes para celular */}
+      <div className="md:hidden space-y-3">
+        {solicitudes.slice(0, 5).length === 0 ? (
+          <Card className="text-center py-8">
+            <p className="text-sm text-text-muted">No hay solicitudes registradas este año.</p>
+          </Card>
+        ) : (
+          solicitudes.slice(0, 5).map((s, i) => (
+            <Card key={s.id_solicitud ?? i} className="p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-xs text-text-muted uppercase tracking-wider font-semibold">Solicitud</p>
+                  <p className="font-semibold text-text mt-0.5">{s.nro_solicitud || '—'}</p>
+                </div>
+                <Badge estado={s.estado || 'BORRADOR'} />
+              </div>
+
+              <p className="font-medium text-text mt-3">{s.tipo?.nombre || '—'}</p>
+
+              <div className="flex items-end justify-between gap-3 mt-2 text-sm text-text-muted">
+                <span>{formatearFecha(s.fecha_inicio)} – {formatearFecha(s.fecha_fin)}</span>
+                <span className="font-semibold text-text whitespace-nowrap">
+                  {s.cantidad ?? '—'} {unidadLabel(s.tipo?.unidad_medida || 'DIAS')}
+                </span>
+              </div>
+            </Card>
+          ))
+        )}
+      </div>
+
+      {/* Vista de últimas solicitudes para escritorio */}
+      <div className="hidden md:block overflow-x-auto rounded-2xl border border-border/80 bg-white shadow-card">
         <table className="min-w-full divide-y divide-border">
           <thead className="bg-slate-50/80">
             <tr>
