@@ -24,7 +24,12 @@ const schema = z
     }
   });
 
-export default function NuevaSolicitud() {
+interface NuevaSolicitudProps {
+  embedded?: boolean;
+  onClose?: () => void;
+}
+
+export default function NuevaSolicitud({ embedded = false, onClose }: NuevaSolicitudProps) {
   const navigate = useNavigate();
   const { id } = useParams();
   const draftId = id ? Number(id) : null;
@@ -36,6 +41,19 @@ export default function NuevaSolicitud() {
   const [cantidad, setCantidad] = React.useState(0);
   const [submitting, setSubmitting] = React.useState(false);
   const [loadingDraft, setLoadingDraft] = React.useState(!!draftId);
+
+  const cerrar = () => {
+    if (onClose) {
+      onClose();
+    } else {
+      navigate('/servidor');
+    }
+  };
+
+  const finalizar = () => {
+    onClose?.();
+    navigate('/servidor/mis-solicitudes');
+  };
 
   const {
     register,
@@ -77,11 +95,13 @@ export default function NuevaSolicitud() {
           const sol = dRes.data;
           if (!sol || sol.estado !== 'BORRADOR') {
             toast.error('Borrador no disponible', 'La solicitud ya no se puede editar como borrador.');
+            onClose?.();
             navigate('/servidor/mis-solicitudes');
             return;
           }
           if (sol.tipo?.codigo === 'PER_EMERGENCIA') {
             toast.error('Tipo no válido', 'La salida de emergencia se registra desde Control de Personal.');
+            onClose?.();
             navigate('/servidor/mis-solicitudes');
             return;
           }
@@ -185,7 +205,7 @@ export default function NuevaSolicitud() {
         });
       }
       toast.success('Borrador guardado', 'Puede continuar luego desde Mis solicitudes.');
-      navigate('/servidor/mis-solicitudes');
+      finalizar();
     } catch (e: any) {
       toast.error('Error al guardar borrador', e?.mensaje || 'No se pudo guardar el borrador');
     } finally {
@@ -218,7 +238,7 @@ export default function NuevaSolicitud() {
       }
 
       toast.success('Solicitud enviada', 'Su solicitud ha sido registrada correctamente.');
-      navigate('/servidor/mis-solicitudes');
+      finalizar();
     } catch (e: any) {
       toast.error('Error al enviar', e?.mensaje || 'No se pudo registrar la solicitud');
     } finally {
@@ -240,17 +260,19 @@ export default function NuevaSolicitud() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-text tracking-tight">
-          {draftId ? 'Editar borrador' : 'Nueva solicitud'}
-        </h1>
-        <p className="text-text-muted mt-1">
-          {draftId
-            ? 'Complete lo que falte y envíe la solicitud cuando esté listo.'
-            : 'Complete los datos de su permiso o licencia. Puede guardar un borrador si aún no tiene todo.'}
-        </p>
-      </div>
+    <div className={embedded ? 'w-full' : 'max-w-3xl mx-auto space-y-6'}>
+      {!embedded && (
+        <div>
+          <h1 className="text-2xl font-bold text-text tracking-tight">
+            {draftId ? 'Editar borrador' : 'Nueva solicitud'}
+          </h1>
+          <p className="text-text-muted mt-1">
+            {draftId
+              ? 'Complete lo que falte y envíe la solicitud cuando esté listo.'
+              : 'Complete los datos de su permiso o licencia. Puede guardar un borrador si aún no tiene todo.'}
+          </p>
+        </div>
+      )}
 
       <Card>
         <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-6">
@@ -394,7 +416,7 @@ export default function NuevaSolicitud() {
           )}
 
           <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-3 pt-4 border-t border-border">
-            <Button type="button" variant="outline" onClick={() => navigate('/servidor')}>
+            <Button type="button" variant="outline" onClick={cerrar}>
               Cancelar
             </Button>
             <Button

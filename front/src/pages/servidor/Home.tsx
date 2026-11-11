@@ -6,6 +6,7 @@ import { Button, Badge, Card, ProgressBar, useToast } from '@/components/common'
 import { formatearFecha, unidadLabel } from '@/utils/format';
 import { AlertTriangle, Clock, FileText, CheckCircle2, BarChart3, LayoutGrid } from 'lucide-react';
 import GraficoSemicirculo from '@/components/saldos/GraficoSemicirculo';
+import ModalNuevaSolicitud from '@/components/solicitudes/ModalNuevaSolicitud';
 
 export default function ServidorHome() {
   const { usuario } = useAuthStore();
@@ -15,6 +16,7 @@ export default function ServidorHome() {
   const [solicitudes, setSolicitudes] = React.useState<any[]>([]);
   const [regularizaciones, setRegularizaciones] = React.useState<any[]>([]);
   const [vistaSaldos, setVistaSaldos] = React.useState<'tarjetas' | 'graficos'>('tarjetas');
+  const [nuevaSolicitudOpen, setNuevaSolicitudOpen] = React.useState(false);
   const [loading, setLoading] = React.useState(true);
 
   const cargarDatos = useCallback(async () => {
@@ -124,7 +126,7 @@ export default function ServidorHome() {
       </div>
 
       <div className="flex flex-col sm:items-center justify-between gap-3">
-  <h2 className="text-lg font-semibold text-text">Últimas solicitudes</h2>
+ 
 
   <style>{`
   .btn-uiverse {
@@ -185,13 +187,15 @@ export default function ServidorHome() {
   <button
     type="button"
     className="btn-uiverse sm:min-w-[200px]"
-    onClick={() => navigate('/servidor/nueva')}
+    onClick={() => setNuevaSolicitudOpen(true)}
   >
     <i className="animation" aria-hidden="true" />
     Nueva solicitud
     <i className="animation" aria-hidden="true" />
   </button>
+   
 </div>
+ <h2 className="text-lg font-semibold text-text">Últimas solicitudes</h2>
 
       {/* Vista de últimas solicitudes para celular */}
       <div className="md:hidden space-y-3">
@@ -312,6 +316,11 @@ export default function ServidorHome() {
           )}
         </div>
       )}
+
+      <ModalNuevaSolicitud
+        isOpen={nuevaSolicitudOpen}
+        onClose={() => setNuevaSolicitudOpen(false)}
+      />
     </div>
   );
 }

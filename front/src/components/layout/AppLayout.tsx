@@ -17,7 +17,6 @@ import { Link, useNavigate, useLocation, Outlet } from 'react-router-dom';
 
 const navItems = [
   { href: '/servidor', label: 'Inicio', icon: Home },
-  { href: '/servidor/nueva', label: 'Nueva solicitud', icon: FileCheck },
   { href: '/servidor/mis-solicitudes', label: 'Mis solicitudes', icon: User },
   { href: '/servidor/regularizar', label: 'Regularizar salidas', icon: Clock },
   { href: '/servidor/mis-saldos', label: 'Mis saldos', icon: Building },
