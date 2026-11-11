@@ -4,7 +4,7 @@ import { apiClient } from '@/services/api';
 import { useAuthStore } from '@/store/auth';
 import { Button, Badge, Card, ProgressBar, useToast } from '@/components/common';
 import { formatearFecha, unidadLabel } from '@/utils/format';
-import { AlertTriangle, Clock, FileText, CheckCircle2, BarChart3, LayoutGrid } from 'lucide-react';
+import { AlertTriangle, Clock, FileText, CheckCircle2, BarChart3, LayoutGrid, ChevronRight } from 'lucide-react';
 import GraficoSemicirculo from '@/components/saldos/GraficoSemicirculo';
 import ModalNuevaSolicitud from '@/components/solicitudes/ModalNuevaSolicitud';
 
@@ -50,6 +50,11 @@ export default function ServidorHome() {
   }
 
   const pendientes = solicitudes.filter((s) => s.estado === 'PENDIENTE' || s.estado === 'OBSERVADA').length;
+
+  const abrirDetalle = (id?: number | string) => {
+    if (id === undefined || id === null || id === '') return;
+    navigate(`/servidor/mis-solicitudes/${id}`);
+  };
 
   return (
     <div className="space-y-8">
@@ -205,13 +210,30 @@ export default function ServidorHome() {
           </Card>
         ) : (
           solicitudes.slice(0, 5).map((s, i) => (
-            <Card key={s.id_solicitud ?? i} className="p-4">
+            <Card
+              key={s.id_solicitud ?? i}
+              className="p-4 cursor-pointer hover:border-primary/40 transition-colors"
+              onClick={() => abrirDetalle(s.id_solicitud)}
+              role="button"
+              tabIndex={0}
+              aria-label={`Ver detalle de la solicitud ${s.nro_solicitud || ''}`}
+              title="Ver detalle"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  abrirDetalle(s.id_solicitud);
+                }
+              }}
+            >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-xs text-text-muted uppercase tracking-wider font-semibold">Solicitud</p>
                   <p className="font-semibold text-text mt-0.5">{s.nro_solicitud || '—'}</p>
                 </div>
-                <Badge estado={s.estado || 'BORRADOR'} />
+                <div className="flex items-center gap-1 shrink-0">
+                  <Badge estado={s.estado || 'BORRADOR'} />
+                  <ChevronRight className="w-4 h-4 text-gray-400" />
+                </div>
               </div>
 
               <p className="font-medium text-text mt-3">{s.tipo?.nombre || '—'}</p>
@@ -248,7 +270,19 @@ export default function ServidorHome() {
               </tr>
             ) : (
               solicitudes.slice(0, 5).map((s, i) => (
-                <tr key={s.id_solicitud ?? i} className="hover:bg-slate-50/80 transition-colors">
+                <tr
+                  key={s.id_solicitud ?? i}
+                  className="hover:bg-slate-50/80 transition-colors cursor-pointer"
+                  onClick={() => abrirDetalle(s.id_solicitud)}
+                  tabIndex={0}
+                  title="Ver detalle"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      abrirDetalle(s.id_solicitud);
+                    }
+                  }}
+                >
                   <td className="px-4 py-3 text-sm text-text font-medium">{s.nro_solicitud || '—'}</td>
                   <td className="px-4 py-3 text-sm text-text">{s.tipo?.nombre || '—'}</td>
                   <td className="px-4 py-3 text-sm text-text">
@@ -258,7 +292,10 @@ export default function ServidorHome() {
                     {s.cantidad ?? '—'} {unidadLabel(s.tipo?.unidad_medida || 'DIAS')}
                   </td>
                   <td className="px-4 py-3">
-                    <Badge estado={s.estado || 'BORRADOR'} />
+                    <div className="flex items-center gap-2">
+                      <Badge estado={s.estado || 'BORRADOR'} />
+                      <ChevronRight className="w-4 h-4 text-gray-400" />
+                    </div>
                   </td>
                 </tr>
               ))

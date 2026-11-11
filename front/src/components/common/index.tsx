@@ -159,13 +159,17 @@ export function Modal({ isOpen, onClose, title, children, confirmLabel = 'Acepta
   );
 }
 
-interface CardProps {
+interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
   className?: string;
 }
 
-export function Card({ children, className = '' }: CardProps) {
-  return <div className={`card ${className}`}>{children}</div>;
+export function Card({ children, className = '', ...props }: CardProps) {
+  return (
+    <div className={`card ${className}`} {...props}>
+      {children}
+    </div>
+  );
 }
 
 interface ConfidentialBadgeProps {
