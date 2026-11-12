@@ -84,6 +84,13 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], static function ($
             $r->get('buscar-servidor', 'MarcacionesController::buscarServidor');
         });
 
+        // ---- INASISTENCIAS / ABANDONO ----
+        $r->group('inasistencias', ['filter' => 'role:CONTROL,RRHH,ADMIN'], static function ($r) {
+            $r->get('',             'InasistenciasController::index');
+            $r->post('',            'InasistenciasController::crear');
+            $r->put('(:num)',       'InasistenciasController::actualizar/$1');
+        });
+
         // ---- ADMIN ----
         $r->group('admin', ['filter' => 'role:ADMIN'], static function ($r) {
             // Tipos

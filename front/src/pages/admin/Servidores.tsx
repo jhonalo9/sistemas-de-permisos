@@ -13,6 +13,7 @@ type ServidorForm = {
   id_jefe: string;
   id_usuario: string;
   estado: string;
+  remuneracion_mensual: string;
 };
 
 const FORM_VACIO: ServidorForm = {
@@ -24,6 +25,7 @@ const FORM_VACIO: ServidorForm = {
   id_jefe: '',
   id_usuario: '',
   estado: 'ACTIVO',
+  remuneracion_mensual: '',
 };
 
 export default function Servidores() {
@@ -79,6 +81,7 @@ export default function Servidores() {
       id_jefe: String(s.id_jefe ?? ''),
       id_usuario: String(s.id_usuario ?? ''),
       estado: s.estado || 'ACTIVO',
+      remuneracion_mensual: s.remuneracion_mensual != null ? String(s.remuneracion_mensual) : '',
     });
     setShowForm(true);
   };
@@ -102,6 +105,7 @@ export default function Servidores() {
         id_jefe: form.id_jefe ? Number(form.id_jefe) : null,
         id_usuario: form.id_usuario ? Number(form.id_usuario) : null,
         estado: form.estado,
+        remuneracion_mensual: form.remuneracion_mensual === '' ? null : Number(form.remuneracion_mensual),
       };
 
       if (editing) {
@@ -250,6 +254,14 @@ export default function Servidores() {
                 <option value="SUSPENDIDO">Suspendido</option>
               </select>
             </div>
+            <Input
+              label="Remuneración mensual (S/)"
+              type="number"
+              step="0.01"
+              value={form.remuneracion_mensual}
+              onChange={(e) => setForm({ ...form, remuneracion_mensual: e.target.value })}
+              helper="Se usa para calcular los descuentos por inasistencias y licencias sin goce."
+            />
             <div className="md:col-span-2 flex gap-2 pt-2">
               <Button type="submit" variant="primary" disabled={saving}>
                 {saving ? 'Guardando...' : editing ? 'Actualizar servidor' : 'Crear servidor'}

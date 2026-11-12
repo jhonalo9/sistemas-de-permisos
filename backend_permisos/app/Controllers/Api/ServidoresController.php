@@ -50,6 +50,8 @@ class ServidoresController extends BaseApiController
                 'id_cargo'  => ! empty($d['id_cargo']) ? (int) $d['id_cargo'] : null,
                 'id_jefe'   => ! empty($d['id_jefe']) ? (int) $d['id_jefe'] : null,
                 'estado'    => $d['estado'] ?? 'ACTIVO',
+                'remuneracion_mensual' => isset($d['remuneracion_mensual']) && $d['remuneracion_mensual'] !== ''
+                    ? (float) $d['remuneracion_mensual'] : null,
             ]);
             $id = (int) $db->insertID();
 
@@ -79,6 +81,10 @@ class ServidoresController extends BaseApiController
         if (array_key_exists('id_unidad', $d)) $update['id_unidad'] = (int) $d['id_unidad'];
         if (array_key_exists('id_cargo', $d)) $update['id_cargo'] = ! empty($d['id_cargo']) ? (int) $d['id_cargo'] : null;
         if (array_key_exists('id_jefe', $d)) $update['id_jefe'] = ! empty($d['id_jefe']) ? (int) $d['id_jefe'] : null;
+        if (array_key_exists('remuneracion_mensual', $d)) {
+            $update['remuneracion_mensual'] = $d['remuneracion_mensual'] === '' || $d['remuneracion_mensual'] === null
+                ? null : (float) $d['remuneracion_mensual'];
+        }
 
         $db->transBegin();
         try {
@@ -125,6 +131,14 @@ class ServidoresController extends BaseApiController
 
         if (isset($d['estado']) && ! in_array($d['estado'], ['ACTIVO', 'CESADO', 'SUSPENDIDO'], true)) {
             return 'El estado no es válido.';
+        }
+
+        if (array_key_exists('remuneracion_mensual', $d)
+            && $d['remuneracion_mensual'] !== ''
+            && $d['remuneracion_mensual'] !== null
+            && (! is_numeric($d['remuneracion_mensual']) || (float) $d['remuneracion_mensual'] < 0)
+        ) {
+            return 'La remuneración mensual debe ser un número mayor o igual a cero.';
         }
 
         if (array_key_exists('id_usuario', $d) && ! empty($d['id_usuario'])) {

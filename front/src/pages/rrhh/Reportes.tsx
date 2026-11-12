@@ -179,7 +179,7 @@ export default function Reportes() {
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              {['DNI', 'Servidor', 'Tipo', 'Días sin goce'].map((h) => (
+              {['DNI', 'Servidor', 'Tipo', 'Días sin goce', 'Remuneración', 'Monto estimado'].map((h) => (
                 <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">{h}</th>
               ))}
             </tr>
@@ -191,6 +191,12 @@ export default function Reportes() {
                 <td className="px-4 py-3 text-sm">{r.servidor}</td>
                 <td className="px-4 py-3 text-sm">{r.tipo}</td>
                 <td className="px-4 py-3 text-sm text-right">{r.dias_sin_goce}</td>
+                <td className="px-4 py-3 text-sm text-right">
+                  {r.remuneracion_mensual != null ? `S/ ${Number(r.remuneracion_mensual).toFixed(2)}` : '—'}
+                </td>
+                <td className="px-4 py-3 text-sm text-right">
+                  {r.monto_descuento != null ? `S/ ${Number(r.monto_descuento).toFixed(2)}` : '—'}
+                </td>
               </tr>
             ))}
           </tbody>

@@ -23,6 +23,7 @@ import {
   ValidarSolicitud,
   EmisionPapeleta,
   Regularizaciones,
+  Inasistencias,
   Reportes,
 } from '@/pages/rrhh';
 import {
@@ -136,6 +137,15 @@ export default function App() {
                 <Route path="fuera" element={<PersonalFuera />} />
                 <Route path="no-volvieron" element={<NoVolvieron />} />
               </Route>
+
+              <Route
+                path="inasistencias"
+                element={
+                  <ProtectedRoute allowedRoles={['CONTROL', 'RRHH', 'ADMIN']}>
+                    <Inasistencias />
+                  </ProtectedRoute>
+                }
+              />
 
               <Route
                 path="admin/*"

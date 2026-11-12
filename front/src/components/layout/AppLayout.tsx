@@ -9,6 +9,7 @@ import {
   ShieldAlert,
   Clock,
   LayoutDashboard,
+  AlertTriangle,
   X,
   ChevronRight,
 } from 'lucide-react';
@@ -31,6 +32,7 @@ const rrhhItems = [
   { href: '/rrhh/panel', label: 'Panel de indicadores', icon: LayoutDashboard },
   { href: '/rrhh/bandeja', label: 'Bandeja de validación', icon: FileCheck },
   { href: '/rrhh/regularizaciones', label: 'Regularizaciones', icon: Clock },
+  { href: '/inasistencias', label: 'Inasistencias', icon: AlertTriangle },
   { href: '/rrhh/reportes', label: 'Reportes', icon: LayoutDashboard },
 ];
 
@@ -42,6 +44,7 @@ const adminItems = [
   { href: '/admin/cargos', label: 'Cargos', icon: Building },
   { href: '/admin/puestos', label: 'Puestos de control', icon: LayoutDashboard },
   { href: '/admin/parametros', label: 'Parámetros', icon: LayoutDashboard },
+  { href: '/inasistencias', label: 'Inasistencias', icon: AlertTriangle },
 ];
 
 const controlItems = [
@@ -50,6 +53,7 @@ const controlItems = [
   { href: '/control/emergencia', label: 'Salida de emergencia', icon: ShieldAlert },
   { href: '/control/fuera', label: 'Personal fuera', icon: User },
   { href: '/control/no-volvieron', label: 'No volvieron', icon: Clock },
+  { href: '/inasistencias', label: 'Inasistencias', icon: AlertTriangle },
 ];
 
 function getNavItems(roles: string[]) {

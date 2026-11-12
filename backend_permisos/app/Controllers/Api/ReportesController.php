@@ -45,7 +45,7 @@ class ReportesController extends BaseApiController
         };
 
         $titulos = match ($tipo) {
-            'descuentos' => ['DNI', 'Servidor', 'Tipo', 'Días sin goce'],
+            'descuentos' => ['DNI', 'Servidor', 'Tipo', 'Días sin goce', 'Remuneración mensual', 'Monto estimado'],
             'licencias'  => ['N.º solicitud', 'DNI', 'Servidor', 'Cargo', 'Unidad', 'Tipo', 'Fecha inicio', 'Fecha fin', 'Cantidad', 'Estado', 'Resolución'],
             'saldos'     => ['DNI', 'Servidor', 'Cargo', 'Unidad', 'Tipo', 'Año', 'Asignado', 'Usado', 'Disponible'],
             default      => ['Unidad', 'Total solicitudes', 'Total cantidad', 'Unidad de medida'],
@@ -88,7 +88,9 @@ class ReportesController extends BaseApiController
 
     private function dataAusentismo(int $mes, int $anio): array
     {
-        return db_connect()->query(
+        $db = db_connect();
+
+        $solicitudes = $db->query(
             'SELECT u.nombre AS unidad,
                     COUNT(*) AS total_solicitudes,
                     SUM(s.cantidad) AS total_cantidad,
@@ -104,23 +106,65 @@ class ReportesController extends BaseApiController
              ORDER BY total_cantidad DESC',
             [$anio, $mes]
         )->getResultArray();
+
+        $inasistencias = $db->query(
+            'SELECT u.nombre AS unidad,
+                    COUNT(*) AS total_solicitudes,
+                    SUM(i.dias_descuento) AS total_cantidad,
+                    "DIAS" AS unidad_medida
+             FROM permiso_inasistencia i
+             JOIN permiso_servidor sv ON sv.id_servidor = i.id_servidor
+             JOIN permiso_unidad_organica u ON u.id_unidad = sv.id_unidad
+             WHERE YEAR(i.fecha) = ? AND MONTH(i.fecha) = ?
+               AND i.estado IN ("REGISTRADA","JUSTIFICADA","INJUSTIFICADA","CON_DESCUENTO")
+             GROUP BY u.nombre
+             ORDER BY total_cantidad DESC',
+            [$anio, $mes]
+        )->getResultArray();
+
+        return array_merge($solicitudes, $inasistencias);
     }
 
     private function dataDescuentos(int $mes, int $anio): array
     {
-        return db_connect()->query(
+        $db = db_connect();
+
+        $licencias = $db->query(
             'SELECT sv.dni, CONCAT(sv.apellidos, ", ", sv.nombres) AS servidor,
-                    t.nombre AS tipo, SUM(s.cantidad) AS dias_sin_goce
+                    t.nombre AS tipo, SUM(s.cantidad) AS dias_sin_goce,
+                    sv.remuneracion_mensual,
+                    CASE WHEN sv.remuneracion_mensual IS NULL THEN NULL
+                         ELSE ROUND((sv.remuneracion_mensual / 30) * SUM(s.cantidad), 2) END AS monto_descuento
              FROM permiso_solicitud_papeleta s
              JOIN permiso_servidor sv ON sv.id_servidor = s.id_servidor
              JOIN permiso_tipo_solicitud t ON t.id_tipo = s.id_tipo
              WHERE t.con_goce = 0 AND t.unidad_medida = "DIAS"
                AND YEAR(s.fecha_inicio) = ? AND MONTH(s.fecha_inicio) = ?
                AND s.estado IN ("APROBADA_RRHH","EN_CURSO","EJECUTADA")
-             GROUP BY sv.dni, servidor, t.nombre
+             GROUP BY sv.dni, servidor, t.nombre, sv.remuneracion_mensual
              ORDER BY servidor',
             [$anio, $mes]
         )->getResultArray();
+
+        $inasistencias = $db->query(
+            'SELECT sv.dni, CONCAT(sv.apellidos, ", ", sv.nombres) AS servidor,
+                    CASE WHEN i.tipo = "ABANDONO"
+                         THEN "Abandono de centro de labores"
+                         ELSE "Inasistencia injustificada" END AS tipo,
+                    SUM(i.dias_descuento) AS dias_sin_goce,
+                    sv.remuneracion_mensual,
+                    CASE WHEN sv.remuneracion_mensual IS NULL THEN NULL
+                         ELSE ROUND((sv.remuneracion_mensual / 30) * SUM(i.dias_descuento), 2) END AS monto_descuento
+             FROM permiso_inasistencia i
+             JOIN permiso_servidor sv ON sv.id_servidor = i.id_servidor
+             WHERE i.estado IN ("INJUSTIFICADA", "CON_DESCUENTO")
+               AND YEAR(i.fecha) = ? AND MONTH(i.fecha) = ?
+             GROUP BY sv.dni, servidor, i.tipo, sv.remuneracion_mensual
+             ORDER BY servidor',
+            [$anio, $mes]
+        )->getResultArray();
+
+        return array_merge($licencias, $inasistencias);
     }
 
     private function dataLicencias(int $mes, int $anio): array

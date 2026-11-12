@@ -1,6 +1,6 @@
 import React from 'react';
 import { apiClient } from '@/services/api';
-import { Card, Badge, useToast } from '@/components/common';
+import { Button, Card, Badge, useToast } from '@/components/common';
 import { asBool } from '@/utils/format';
 import { AlertTriangle, Clock } from 'lucide-react';
 
@@ -24,6 +24,27 @@ export default function NoVolvieron() {
     };
     cargar();
   }, []);
+
+  const registrarAbandono = async (r: any) => {
+    if (!window.confirm(`¿Registrar abandono para ${r.servidor}?`)) return;
+    try {
+      await apiClient('/inasistencias', {
+        method: 'POST',
+        body: {
+          id_servidor: r.id_servidor,
+          fecha: String(r.hora_salida || '').slice(0, 10),
+          tipo: 'ABANDONO',
+          motivo: 'Salida sin retorno al cierre de jornada.',
+          estado: 'REGISTRADA',
+          dias_descuento: 1,
+          id_solicitud: r.id_solicitud,
+        },
+      });
+      toast.success('Abandono registrado', 'El caso fue enviado a Inasistencias.');
+    } catch (e: any) {
+      toast.error('No se pudo registrar', e?.mensaje || 'Verifique si ya existe un registro para esa fecha.');
+    }
+  };
 
   if (loading) {
     return (
@@ -75,6 +96,7 @@ export default function NoVolvieron() {
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Hora salida</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Minutos fuera</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Alerta</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Acción</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
@@ -94,6 +116,11 @@ export default function NoVolvieron() {
                   </td>
                   <td className="px-4 py-3 text-sm">
                     <Badge estado={asBool(r.es_urgente) ? 'REGULARIZAR' : 'EN_CURSO'} />
+                  </td>
+                  <td className="px-4 py-3">
+                    <Button variant="outline" onClick={() => registrarAbandono(r)}>
+                      Registrar abandono
+                    </Button>
                   </td>
                 </tr>
               ))}
