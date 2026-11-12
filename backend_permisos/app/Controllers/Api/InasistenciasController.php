@@ -66,6 +66,10 @@ class InasistenciasController extends BaseApiController
                 'motivo'             => ! empty($d['motivo']) ? $d['motivo'] : null,
                 'fecha_comunicacion' => ! empty($d['fecha_comunicacion']) ? $d['fecha_comunicacion'] : null,
                 'fecha_sustento'     => ! empty($d['fecha_sustento']) ? $d['fecha_sustento'] : null,
+                'fecha_limite_justificacion' => $this->fechaLimiteJustificacion(
+                    (string) $d['fecha'],
+                    $tipo
+                ),
                 'estado'             => $estado,
                 'dias_descuento'     => $dias,
                 'id_solicitud'       => ! empty($d['id_solicitud']) ? (int) $d['id_solicitud'] : null,
@@ -115,6 +119,38 @@ class InasistenciasController extends BaseApiController
 
         (new InasistenciaModel())->update($id, $update);
         return ApiResponse::ok(null, 200, ['mensaje' => 'Inasistencia actualizada.']);
+    }
+
+    private function fechaLimiteJustificacion(string $fecha, string $tipo): ?string
+    {
+        $clave = match ($tipo) {
+            'ABANDONO'   => 'dias_justificacion_abandono',
+            'ENFERMEDAD' => 'dias_justificacion_enfermedad',
+            default      => null,
+        };
+        if ($clave === null) return null;
+
+        $row = db_connect()->table('permiso_configuracion')
+            ->where('clave', $clave)->get()->getRowArray();
+        $dias = (int) ($row['valor'] ?? ($tipo === 'ABANDONO' ? 1 : 3));
+        if ($dias < 0) $dias = 0;
+
+        $feriados = array_column(
+            db_connect()->table('permiso_feriado')->get()->getResultArray(), 'fecha'
+        );
+        $t = strtotime($fecha);
+        if ($t === false) return null;
+
+        $sumados = 0;
+        while ($sumados < $dias) {
+            $t = strtotime(date('Y-m-d', $t) . ' +1 day');
+            $dow = (int) date('N', $t);
+            if ($dow >= 6) continue;
+            if (in_array(date('Y-m-d', $t), $feriados, true)) continue;
+            $sumados++;
+        }
+
+        return date('Y-m-d', $t);
     }
 
     private function validar(array $d, bool $esEdicion): ?string

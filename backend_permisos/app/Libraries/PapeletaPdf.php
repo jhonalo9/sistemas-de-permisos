@@ -36,8 +36,15 @@ class PapeletaPdf
             ? 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath))
             : '';
 
+        $config = $db->table('permiso_configuracion')
+            ->where('clave', 'lugar_expedicion')->get()->getRowArray();
+        $lugarComision = ! empty($s['lugar_comision'])
+            ? $s['lugar_comision']
+            : ($config['valor'] ?? 'Chiclayo');
+
         $html = view('papeleta/pdf', [
             's' => $s, 'barcode' => $barcode, 'sello' => $sello, 'logo' => $logo,
+            'lugarComision' => $lugarComision,
         ]);
 
         $opts = new Options();

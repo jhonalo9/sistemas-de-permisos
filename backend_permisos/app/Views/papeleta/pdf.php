@@ -7,13 +7,18 @@
  */
 $copias = ['ORIGINAL', 'COPIA'];
 $anio = date('Y', strtotime($s['fecha_inicio']));
-$horaSalida = ! empty($s['hora_inicio']) ? substr((string) $s['hora_inicio'], 0, 5) : '';
-$horaRetorno = ! empty($s['hora_fin']) ? substr((string) $s['hora_fin'], 0, 5) : '';
+$esPorDias = empty($s['hora_inicio']) && empty($s['hora_fin']);
+$horaSalida = ! empty($s['hora_inicio'])
+    ? substr((string) $s['hora_inicio'], 0, 5)
+    : ($esPorDias ? date('d/m/Y', strtotime((string) $s['fecha_inicio'])) : '');
+$horaRetorno = ! empty($s['hora_fin'])
+    ? substr((string) $s['hora_fin'], 0, 5)
+    : ($esPorDias ? date('d/m/Y', strtotime((string) $s['fecha_fin'])) : '');
 
 $minutos = null;
 if ($s['tiempo_empleado_min'] !== null && (float) $s['tiempo_empleado_min'] > 0) {
     $minutos = (float) $s['tiempo_empleado_min'];
-} elseif ($horaSalida !== '' && $horaRetorno !== '') {
+} elseif (! $esPorDias && $horaSalida !== '' && $horaRetorno !== '') {
     [$hi, $mi] = array_map('intval', explode(':', $horaSalida));
     [$hf, $mf] = array_map('intval', explode(':', $horaRetorno));
     $minutos = ($hf * 60 + $mf) - ($hi * 60 + $mi);
@@ -23,7 +28,9 @@ if ($s['tiempo_empleado_min'] !== null && (float) $s['tiempo_empleado_min'] > 0)
 }
 
 $tiempo = '';
-if ($minutos !== null && $minutos > 0) {
+if ($esPorDias) {
+    $tiempo = rtrim(rtrim(number_format((float) $s['cantidad'], 2, '.', ''), '0'), '.') . ' día(s)';
+} elseif ($minutos !== null && $minutos > 0) {
     $minutos = (int) round($minutos);
     $horas = intdiv($minutos, 60);
     $resto = $minutos % 60;
@@ -179,12 +186,12 @@ $funcionario = $s['jefe'] ?? '';
         </td>
       </tr>
       <tr>
-        <td colspan="3"><span class="label">LUGAR DE COMISIÓN :</span> <span class="value">Chiclayo</span></td>
+        <td colspan="3"><span class="label">LUGAR DE COMISIÓN :</span> <span class="value"><?= esc($lugarComision ?? 'Chiclayo') ?></span></td>
       </tr>
       <tr>
         <td style="width:55%;"><span class="label">NOMBRE DEL FUNCIONARIO :</span> <span class="value"><?= esc($funcionario) ?></span></td>
-        <td style="width:20%;"><span class="label red">HORA DE SALIDA :</span> <span class="value"><?= esc($horaSalida) ?></span></td>
-        <td style="width:25%;"><span class="label red">HORA DE RETORNO :</span> <span class="value"><?= esc($horaRetorno) ?></span></td>
+        <td style="width:20%;"><span class="label red"><?= $esPorDias ? 'FECHA DE SALIDA' : 'HORA DE SALIDA' ?> :</span> <span class="value"><?= esc($horaSalida) ?></span></td>
+        <td style="width:25%;"><span class="label red"><?= $esPorDias ? 'FECHA DE RETORNO' : 'HORA DE RETORNO' ?> :</span> <span class="value"><?= esc($horaRetorno) ?></span></td>
       </tr>
       <tr>
         <td colspan="3"><span class="label">TIEMPO EMPLEADO :</span> <span class="value"><?= $tiempo ?></span></td>

@@ -28,6 +28,10 @@ const jefeItems = [
   { href: '/jefe/equipo', label: 'Mi equipo', icon: User },
 ];
 
+const gerenciaItems = [
+  { href: '/gerencia/aprobaciones', label: 'Aprobaciones de Gerencia', icon: FileCheck },
+];
+
 const rrhhItems = [
   { href: '/rrhh/panel', label: 'Panel de indicadores', icon: LayoutDashboard },
   { href: '/rrhh/bandeja', label: 'Bandeja de validación', icon: FileCheck },
@@ -58,6 +62,7 @@ const controlItems = [
 
 function getNavItems(roles: string[]) {
   if (roles.includes('ADMIN')) return adminItems;
+  if (roles.includes('GERENCIA')) return gerenciaItems;
   if (roles.includes('RRHH')) return rrhhItems;
   if (roles.includes('JEFE')) return jefeItems;
   if (roles.includes('CONTROL')) return controlItems;

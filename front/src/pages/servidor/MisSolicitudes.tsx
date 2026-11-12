@@ -15,7 +15,7 @@ export default function MisSolicitudes() {
 
   const estados = [
     'BORRADOR', 'REGULARIZAR', 'PENDIENTE', 'OBSERVADA', 'APROBADA_JEFE',
-    'APROBADA_RRHH', 'EN_CURSO', 'RECHAZADA', 'ANULADA', 'EJECUTADA',
+    'APROBADA_RRHH', 'PENDIENTE_GERENCIA', 'EN_CURSO', 'RECHAZADA', 'ANULADA', 'EJECUTADA',
   ];
 
   React.useEffect(() => {
@@ -83,14 +83,15 @@ export default function MisSolicitudes() {
         <p className="text-gray-600">Consulte el estado de sus solicitudes de permisos y licencias.</p>
       </div>
 
-      <div className="flex flex-col md:flex-row gap-4 items-end">
+      <div className="flex flex-col md:flex-row gap-2 items-end">
         <div className="flex-1">
-          <div className="flex items-center gap-2">
-            <Search className="w-4 h-4 text-gray-400" />
+          <InputLabel>Filtros</InputLabel>
+          <div className="flex items-center gap-1">
+            
             <select
               value={filtroEstado}
               onChange={(e) => setFiltroEstado(e.target.value)}
-              className="input-field pl-9"
+              className="input-field pl-4 pr-8"
             >
               <option value="">Todos los estados</option>
               {estados.map((e) => (

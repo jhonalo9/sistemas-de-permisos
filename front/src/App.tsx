@@ -17,6 +17,7 @@ import {
   DetalleAprobacion,
   MiEquipo,
 } from '@/pages/jefe';
+import { BandejaGerencia } from '@/pages/gerencia';
 import {
   Panel,
   BandejaValidacion,
@@ -120,6 +121,18 @@ export default function App() {
                 <Route path="papeleta/:id" element={<EmisionPapeleta />} />
                 <Route path="regularizaciones" element={<Regularizaciones />} />
                 <Route path="reportes" element={<Reportes />} />
+              </Route>
+
+              <Route
+                path="gerencia/*"
+                element={
+                  <ProtectedRoute allowedRoles={['GERENCIA', 'ADMIN']}>
+                    <Outlet />
+                  </ProtectedRoute>
+                }
+              >
+                <Route index element={<Navigate to="aprobaciones" replace />} />
+                <Route path="aprobaciones" element={<BandejaGerencia />} />
               </Route>
 
               <Route

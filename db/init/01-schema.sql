@@ -85,6 +85,7 @@ CREATE TABLE permiso_tipo_solicitud (
   solo_sexo                 CHAR(1) NULL,
   permite_regularizar       TINYINT(1) NOT NULL DEFAULT 0,
   dias_calendario           TINYINT(1) NOT NULL DEFAULT 1,
+  ajustar_siguiente_habil   TINYINT(1) NOT NULL DEFAULT 0,
   base_legal                VARCHAR(500) NULL,
   plazo_regularizacion_dias SMALLINT NULL,
   activo                    TINYINT(1) NOT NULL DEFAULT 1,
@@ -102,11 +103,13 @@ CREATE TABLE permiso_solicitud_papeleta (
   id_cargo_solicitud          INT NULL,
   fecha_inicio                DATE NULL,
   fecha_fin                   DATE NULL,
+  fecha_fin_base              DATE NULL,
   hora_inicio                 TIME NULL,
   hora_fin                    TIME NULL,
   cantidad                    DECIMAL(6,2) NOT NULL DEFAULT 0,
   entrega_cargo               TINYINT(1) NOT NULL DEFAULT 0,
   motivo                      TEXT NULL,
+  lugar_comision              VARCHAR(150) NULL,
   estado                      VARCHAR(20) NOT NULL DEFAULT 'BORRADOR',
   token_codigo                VARCHAR(16) NULL,
   es_urgente                  TINYINT(1) NOT NULL DEFAULT 0,
@@ -134,7 +137,7 @@ CREATE TABLE permiso_solicitud_papeleta (
     REFERENCES permiso_usuario(id_usuario),
   CONSTRAINT ck_sol_estado CHECK (estado IN
     ('BORRADOR','REGULARIZAR','PENDIENTE','OBSERVADA','APROBADA_JEFE',
-     'APROBADA_RRHH','EN_CURSO','RECHAZADA','ANULADA','EJECUTADA')),
+     'APROBADA_RRHH','PENDIENTE_GERENCIA','EN_CURSO','RECHAZADA','ANULADA','EJECUTADA')),
   CONSTRAINT ck_sol_cantidad CHECK (cantidad >= 0),
   CONSTRAINT ck_sol_urgente_limite
     CHECK (es_urgente = 0 OR fecha_limite_regularizacion IS NOT NULL),
@@ -226,6 +229,7 @@ CREATE TABLE permiso_inasistencia (
   motivo               VARCHAR(500) NULL,
   fecha_comunicacion   DATE NULL,
   fecha_sustento       DATE NULL,
+  fecha_limite_justificacion DATE NULL,
   estado               VARCHAR(20) NOT NULL DEFAULT 'REGISTRADA',
   dias_descuento       DECIMAL(6,2) NOT NULL DEFAULT 0,
   id_solicitud         BIGINT NULL,
@@ -249,6 +253,32 @@ CREATE TABLE permiso_inasistencia (
 
 CREATE INDEX ix_inas_fecha ON permiso_inasistencia(fecha);
 CREATE INDEX ix_inas_estado ON permiso_inasistencia(estado);
+
+CREATE TABLE permiso_tipo_condicion (
+  id_condicion    INT AUTO_INCREMENT PRIMARY KEY,
+  id_tipo         INT NOT NULL,
+  codigo          VARCHAR(40) NOT NULL,
+  nombre          VARCHAR(150) NOT NULL,
+  dias_extra      DECIMAL(6,2) NOT NULL DEFAULT 0,
+  dias_calendario TINYINT(1) NOT NULL DEFAULT 1,
+  grupo           VARCHAR(30) NULL,
+  descripcion     VARCHAR(300) NULL,
+  activo          TINYINT(1) NOT NULL DEFAULT 1,
+  UNIQUE KEY uq_cond_tipo_codigo (id_tipo, codigo),
+  CONSTRAINT fk_cond_tipo FOREIGN KEY (id_tipo)
+    REFERENCES permiso_tipo_solicitud(id_tipo) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE permiso_solicitud_condicion (
+  id_solicitud BIGINT NOT NULL,
+  id_condicion INT NOT NULL,
+  dias_extra   DECIMAL(6,2) NOT NULL DEFAULT 0,
+  PRIMARY KEY (id_solicitud, id_condicion),
+  CONSTRAINT fk_solcond_sol FOREIGN KEY (id_solicitud)
+    REFERENCES permiso_solicitud_papeleta(id_solicitud) ON DELETE CASCADE,
+  CONSTRAINT fk_solcond_cond FOREIGN KEY (id_condicion)
+    REFERENCES permiso_tipo_condicion(id_condicion) ON DELETE CASCADE
+) ENGINE=InnoDB;
 
 CREATE TABLE permiso_contador (
   anio SMALLINT PRIMARY KEY,

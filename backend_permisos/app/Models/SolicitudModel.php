@@ -12,7 +12,9 @@ class SolicitudModel extends Model
     protected $allowedFields = [
         'nro_solicitud','id_servidor','id_tipo','id_jefe_solicitud',
         'id_unidad_solicitud','id_cargo_solicitud','fecha_inicio','fecha_fin',
-        'hora_inicio','hora_fin','cantidad','entrega_cargo','motivo','estado','token_codigo',
+        'fecha_fin_base',
+        'hora_inicio','hora_fin','cantidad','entrega_cargo','motivo','lugar_comision',
+        'estado','token_codigo',
         'es_urgente','fecha_limite_regularizacion','tiempo_empleado_min',
         'mision_cumplida','id_usuario_visa','fecha_visa','nro_resolucion','fecha_resolucion',
     ];
@@ -23,7 +25,7 @@ class SolicitudModel extends Model
         'dias_anticipacion', 'anticipacion_dias_habiles', 'permite_mismo_dia',
         'max_horas_semana', 'max_horas_dia', 'requiere_entrega_cargo',
         'autoridad_aprobacion', 'tipo_sustento', 'requiere_sustento', 'solo_sexo',
-        'permite_regularizar', 'dias_calendario', 'base_legal',
+        'permite_regularizar', 'dias_calendario', 'ajustar_siguiente_habil', 'base_legal',
         'plazo_regularizacion_dias', 'activo',
     ];
 
@@ -41,6 +43,7 @@ class SolicitudModel extends Model
         $tipo['requiere_sustento']         = (int) ($tipo['requiere_sustento'] ?? 0);
         $tipo['permite_regularizar']       = (int) ($tipo['permite_regularizar'] ?? 0);
         $tipo['dias_calendario']           = (int) ($tipo['dias_calendario'] ?? 0);
+        $tipo['ajustar_siguiente_habil']   = (int) ($tipo['ajustar_siguiente_habil'] ?? 0);
         $tipo['activo']                    = (int) ($tipo['activo'] ?? 0);
         $tipo['anticipacion_dias_habiles'] = (int) ($tipo['anticipacion_dias_habiles'] ?? 0);
         $tipo['permite_mismo_dia']         = (int) ($tipo['permite_mismo_dia'] ?? 0);
@@ -123,6 +126,12 @@ class SolicitudModel extends Model
 
         $s['adjuntos'] = $this->db->table('permiso_solicitud_adjunto')
             ->where('id_solicitud', $id)->get()->getResultArray();
+
+        $s['condiciones'] = $this->db->table('permiso_solicitud_condicion sc')
+            ->select('sc.id_condicion, sc.dias_extra, c.codigo, c.nombre, c.dias_calendario, c.grupo')
+            ->join('permiso_tipo_condicion c', 'c.id_condicion = sc.id_condicion')
+            ->where('sc.id_solicitud', $id)
+            ->get()->getResultArray();
 
         $s['historial'] = $this->db->table('permiso_solicitud_historial h')
             ->select('h.*, u.nombre AS usuario_nombre')

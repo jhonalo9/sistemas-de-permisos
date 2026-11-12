@@ -1,4 +1,4 @@
-export type Rol = 'SERVIDOR' | 'JEFE' | 'RRHH' | 'CONTROL' | 'ADMIN';
+export type Rol = 'SERVIDOR' | 'JEFE' | 'RRHH' | 'CONTROL' | 'GERENCIA' | 'ADMIN';
 
 export type EstadoSolicitud =
   | 'BORRADOR'
@@ -7,6 +7,7 @@ export type EstadoSolicitud =
   | 'OBSERVADA'
   | 'APROBADA_JEFE'
   | 'APROBADA_RRHH'
+  | 'PENDIENTE_GERENCIA'
   | 'EN_CURSO'
   | 'RECHAZADA'
   | 'ANULADA'

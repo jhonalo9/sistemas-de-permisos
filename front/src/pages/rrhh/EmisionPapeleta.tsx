@@ -53,7 +53,9 @@ export default function EmisionPapeleta() {
     );
   }
 
-  const esPermisoHoras = solicitud.tipo?.unidad_medida === 'HORAS';
+  const esPermisoHoras =
+    solicitud.tipo?.unidad_medida === 'HORAS' ||
+    solicitud.tipo?.codigo === 'PER_COMISION_SERVICIO';
   const puedeImprimir = solicitud.estado === 'APROBADA_RRHH' && !!solicitud.token_codigo;
 
   return (
@@ -115,7 +117,7 @@ export default function EmisionPapeleta() {
           </div>
           <div>
             <p className="text-xs text-gray-500 uppercase">Lugar de comisión</p>
-            <p className="font-medium text-text">Chiclayo</p>
+            <p className="font-medium text-text">{solicitud.lugar_comision || 'Chiclayo'}</p>
           </div>
           <div>
             <p className="text-xs text-gray-500 uppercase">Funcionario que autoriza</p>

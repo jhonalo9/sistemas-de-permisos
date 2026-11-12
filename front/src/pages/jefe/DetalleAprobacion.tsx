@@ -150,6 +150,18 @@ export default function DetalleAprobacion() {
                 <p className="text-xs text-gray-500 uppercase">Motivo</p>
                 <p className="font-medium text-text">{solicitud.motivo || '—'}</p>
               </div>
+              {solicitud.condiciones && solicitud.condiciones.length > 0 && (
+                <div className="col-span-2">
+                  <p className="text-xs text-gray-500 uppercase">Condiciones especiales</p>
+                  <ul className="mt-1 space-y-1 text-sm text-text">
+                    {solicitud.condiciones.map((c: any) => (
+                      <li key={c.id_condicion}>
+                        • {c.nombre} (+{Number(c.dias_extra)} día(s))
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
           </Card>
 

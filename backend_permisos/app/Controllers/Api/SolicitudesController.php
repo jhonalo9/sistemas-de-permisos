@@ -45,13 +45,20 @@ class SolicitudesController extends BaseApiController
             return ApiResponse::error('La salida de emergencia se registra desde Control de Personal.', 422);
         }
 
+        try {
+            $datos = $this->aplicarInicioHabil($tipo, $datos);
+            $datos = $this->aplicarCondiciones($tipo, $datos);
+        } catch (\RuntimeException $e) {
+            return ApiResponse::error($e->getMessage(), 422);
+        }
+
         if ($esBorrador) {
             $cantidad = 0;
             if (! empty($datos['fecha_inicio']) && ! empty($datos['fecha_fin'])) {
                 if (! $this->fechasValidas($datos)) {
                     return ApiResponse::error('Las fechas del borrador no son válidas.', 422);
                 }
-                $cantidad = $this->calcularCantidad($tipo, $datos);
+                $cantidad = $this->cantidadConCondiciones($tipo, $datos);
             }
             $datos['cantidad'] = $cantidad;
             $lista = $this->archivosSubidos();
@@ -84,7 +91,7 @@ class SolicitudesController extends BaseApiController
             return ApiResponse::error('Las fechas de la solicitud no son válidas.', 422);
         }
 
-        $cantidad = $this->calcularCantidad($tipo, $datos);
+        $cantidad = $this->cantidadConCondiciones($tipo, $datos);
         if ($cantidad <= 0) {
             return ApiResponse::error('La cantidad calculada es 0. Verifique fechas y horas.', 422);
         }
@@ -132,12 +139,26 @@ class SolicitudesController extends BaseApiController
             return ApiResponse::error('La salida de emergencia se registra desde Control de Personal.', 422);
         }
 
+        if (! array_key_exists('condiciones', $datos) && ! array_key_exists('ids_condiciones', $datos)) {
+            $datos['condiciones'] = $this->idsCondicionesDeSolicitud($id);
+        }
+        if (empty($datos['fecha_fin']) && ! empty($s['fecha_fin_base'])) {
+            $datos['fecha_fin'] = $s['fecha_fin_base'];
+        }
+
+        try {
+            $datos = $this->aplicarInicioHabil($tipo, $datos);
+            $datos = $this->aplicarCondiciones($tipo, $datos);
+        } catch (\RuntimeException $e) {
+            return ApiResponse::error($e->getMessage(), 422);
+        }
+
         $merged = array_merge($s, $datos, ['id_tipo' => $idTipo]);
         if (($datos['fecha_inicio'] ?? $s['fecha_inicio']) && ($datos['fecha_fin'] ?? $s['fecha_fin'])) {
             if (! $this->fechasValidas($merged)) {
                 return ApiResponse::error('Las fechas del borrador no son válidas.', 422);
             }
-            $datos['cantidad'] = $this->calcularCantidad($tipo, $merged);
+            $datos['cantidad'] = $this->cantidadConCondiciones($tipo, $merged);
         } else {
             $datos['cantidad'] = 0;
         }
@@ -177,6 +198,20 @@ class SolicitudesController extends BaseApiController
             return ApiResponse::error('La salida de emergencia se registra desde Control de Personal.', 422);
         }
 
+        if (! array_key_exists('condiciones', $datos) && ! array_key_exists('ids_condiciones', $datos)) {
+            $datos['condiciones'] = $this->idsCondicionesDeSolicitud($id);
+        }
+        if (empty($datos['fecha_fin']) && ! empty($s['fecha_fin_base'])) {
+            $datos['fecha_fin'] = $s['fecha_fin_base'];
+        }
+
+        try {
+            $datos = $this->aplicarInicioHabil($tipo, $datos);
+            $datos = $this->aplicarCondiciones($tipo, $datos);
+        } catch (\RuntimeException $e) {
+            return ApiResponse::error($e->getMessage(), 422);
+        }
+
         $merged = array_merge($s, $datos, ['id_tipo' => $idTipo]);
         if (! $this->fechasValidas($merged)) {
             return ApiResponse::error('Complete las fechas de la solicitud.', 422);
@@ -185,7 +220,7 @@ class SolicitudesController extends BaseApiController
             return ApiResponse::error('El motivo debe tener al menos 5 caracteres.', 422);
         }
 
-        $datos['cantidad'] = $this->calcularCantidad($tipo, $merged);
+        $datos['cantidad'] = $this->cantidadConCondiciones($tipo, $merged);
         $lista = $this->archivosSubidos();
 
         try {
@@ -267,6 +302,20 @@ class SolicitudesController extends BaseApiController
             return ApiResponse::error('La salida de emergencia se registra desde Control de Personal.', 422);
         }
 
+        if (! array_key_exists('condiciones', $d) && ! array_key_exists('ids_condiciones', $d)) {
+            $d['condiciones'] = $this->idsCondicionesDeSolicitud($id);
+        }
+        if (empty($d['fecha_fin']) && ! empty($s['fecha_fin_base'])) {
+            $d['fecha_fin'] = $s['fecha_fin_base'];
+        }
+
+        try {
+            $d = $this->aplicarInicioHabil($tipo, $d);
+            $d = $this->aplicarCondiciones($tipo, $d);
+        } catch (\RuntimeException $e) {
+            return ApiResponse::error($e->getMessage(), 422);
+        }
+
         $merged = array_merge($s, $d, ['id_tipo' => $idTipo]);
         if (! $this->fechasValidas($merged)) {
             return ApiResponse::error('Las fechas de la solicitud no son válidas.', 422);
@@ -275,7 +324,7 @@ class SolicitudesController extends BaseApiController
             return ApiResponse::error('El motivo debe tener al menos 5 caracteres.', 422);
         }
 
-        $cantidad = $this->calcularCantidad($tipo, $merged);
+        $cantidad = $this->cantidadConCondiciones($tipo, $merged);
         if ($cantidad <= 0) {
             return ApiResponse::error('La cantidad calculada es 0. Verifique fechas y horas.', 422);
         }
@@ -302,13 +351,16 @@ class SolicitudesController extends BaseApiController
                 'motivo'       => $merged['motivo'],
                 'fecha_inicio' => $merged['fecha_inicio'],
                 'fecha_fin'    => $merged['fecha_fin'],
+                'fecha_fin_base' => $merged['fecha_fin_base'] ?? null,
                 'hora_inicio'  => $merged['hora_inicio'] ?? null,
                 'hora_fin'     => $merged['hora_fin'] ?? null,
                 'cantidad'     => $cantidad,
                 'entrega_cargo' => ! empty($merged['entrega_cargo']) ? 1 : 0,
+                'lugar_comision' => ! empty($merged['lugar_comision']) ? $merged['lugar_comision'] : null,
                 'estado'       => 'PENDIENTE',
             ]);
             $svc->insertarAdjuntos($id, $lista);
+            $svc->insertarCondiciones($id, $merged['_condiciones'] ?? []);
             (new \App\Models\HistorialModel())->insert([
                 'id_solicitud' => $id,
                 'estado_ant'   => 'OBSERVADA',
@@ -383,6 +435,161 @@ class SolicitudesController extends BaseApiController
         }
     }
 
+    /**
+     * Aplica el traslado al siguiente día hábil cuando el tipo lo configura
+     * (por ejemplo, licencia por onomástico que cae en fin de semana).
+     */
+    private function aplicarInicioHabil(array $tipo, array $d): array
+    {
+        if (empty($tipo['ajustar_siguiente_habil'])) return $d;
+        if (($tipo['unidad_medida'] ?? '') !== 'DIAS' || empty($d['fecha_inicio'])) return $d;
+
+        $inicio = (string) $d['fecha_inicio'];
+        $fin    = ! empty($d['fecha_fin']) ? (string) $d['fecha_fin'] : $inicio;
+
+        $delta = $this->diasHastaHabil($inicio);
+        if ($delta > 0) {
+            $d['fecha_inicio'] = date('Y-m-d', strtotime($inicio . ' +' . $delta . ' day'));
+            $d['fecha_fin']    = date('Y-m-d', strtotime($fin . ' +' . $delta . ' day'));
+        }
+
+        return $d;
+    }
+
+    private function diasHastaHabil(string $fecha): int
+    {
+        $feriados = array_column(
+            db_connect()->table('permiso_feriado')->get()->getResultArray(), 'fecha'
+        );
+        $delta = 0;
+        $t = strtotime($fecha);
+        if ($t === false) return 0;
+
+        for ($i = 0; $i < 15; $i++) {
+            $actual   = date('Y-m-d', $t);
+            $dow      = (int) date('N', $t);
+            $noLaboral = $dow >= 6 || in_array($actual, $feriados, true);
+            if (! $noLaboral) return $delta;
+            $t = strtotime($actual . ' +1 day');
+            $delta++;
+        }
+
+        return $delta;
+    }
+
+    private function idsCondiciones(array $d): array
+    {
+        $raw = $d['condiciones'] ?? $d['ids_condiciones'] ?? null;
+        if ($raw === null || $raw === '') return [];
+
+        if (is_string($raw)) {
+            $raw = trim($raw);
+            if ($raw === '') return [];
+            if (str_starts_with($raw, '[')) {
+                $decodificado = json_decode($raw, true);
+                $raw = is_array($decodificado) ? $decodificado : [];
+            } else {
+                $raw = explode(',', $raw);
+            }
+        }
+
+        $ids = array_map('intval', (array) $raw);
+        return array_values(array_unique(array_filter($ids, static fn (int $id): bool => $id > 0)));
+    }
+
+    private function idsCondicionesDeSolicitud(int $idSolicitud): array
+    {
+        return array_map('intval', array_column(
+            db_connect()->table('permiso_solicitud_condicion')
+                ->select('id_condicion')->where('id_solicitud', $idSolicitud)->get()->getResultArray(),
+            'id_condicion'
+        ));
+    }
+
+    /**
+     * Resuelve las condiciones elegidas y extiende la fecha fin con los días extra.
+     *
+     * @return array{0: array, 1: string} [condiciones, dias_extra]
+     */
+    private function aplicarCondiciones(array $tipo, array $d): array
+    {
+        if (! array_key_exists('condiciones', $d) && ! array_key_exists('ids_condiciones', $d)) {
+            return $d;
+        }
+
+        $ids = $this->idsCondiciones($d);
+        $db  = db_connect();
+
+        $condiciones = $ids === [] ? [] : $db->table('permiso_tipo_condicion')
+            ->where('id_tipo', (int) $tipo['id_tipo'])
+            ->whereIn('id_condicion', $ids)
+            ->where('activo', 1)
+            ->get()->getResultArray();
+
+        if (count($condiciones) !== count($ids)) {
+            throw new \RuntimeException('Alguna condición seleccionada no es válida para este tipo de solicitud.');
+        }
+
+        $grupos = [];
+        foreach ($condiciones as $c) {
+            if (! empty($c['grupo'])) {
+                if (isset($grupos[$c['grupo']])) {
+                    throw new \RuntimeException('Solo puede seleccionar una condición del grupo ' . $c['grupo'] . '.');
+                }
+                $grupos[$c['grupo']] = true;
+            }
+        }
+
+        $d['_condiciones'] = $condiciones;
+        $d['dias_extra']   = array_sum(array_map(
+            static fn (array $c): float => (float) ($c['dias_extra'] ?? 0),
+            $condiciones
+        ));
+
+        if (($tipo['unidad_medida'] ?? '') === 'DIAS' && ! empty($d['fecha_inicio'])) {
+            $base = ! empty($d['fecha_fin']) ? (string) $d['fecha_fin'] : (string) $d['fecha_inicio'];
+            $d['fecha_fin_base'] = $base;
+
+            foreach ($condiciones as $c) {
+                $base = $this->sumarDias(
+                    $base,
+                    (float) ($c['dias_extra'] ?? 0),
+                    ! empty($c['dias_calendario'])
+                );
+            }
+
+            $d['fecha_fin'] = $base;
+        }
+
+        return $d;
+    }
+
+    private function sumarDias(string $fecha, float $dias, bool $calendario): string
+    {
+        $dias = (int) ceil($dias);
+        if ($dias <= 0) return $fecha;
+
+        if ($calendario) {
+            return date('Y-m-d', strtotime($fecha . ' +' . $dias . ' day'));
+        }
+
+        $feriados = array_column(
+            db_connect()->table('permiso_feriado')->get()->getResultArray(), 'fecha'
+        );
+        $t = strtotime($fecha);
+        $sumados = 0;
+
+        while ($sumados < $dias) {
+            $t = strtotime(date('Y-m-d', $t) . ' +1 day');
+            $dow = (int) date('N', $t);
+            if ($dow >= 6) continue;
+            if (in_array(date('Y-m-d', $t), $feriados, true)) continue;
+            $sumados++;
+        }
+
+        return date('Y-m-d', $t);
+    }
+
     private function archivosSubidos(): array
     {
         $adjuntos = $this->request->getFileMultiple('adjuntos');
@@ -407,6 +614,22 @@ class SolicitudesController extends BaseApiController
         if (! preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) $inicio)) return false;
         if (! preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) $fin)) return false;
         return strtotime((string) $inicio) !== false && strtotime((string) $fin) !== false;
+    }
+
+    private function cantidadConCondiciones(array $tipo, array $d): float
+    {
+        $extra = (float) ($d['dias_extra'] ?? 0);
+
+        if ($extra <= 0 || ($tipo['unidad_medida'] ?? '') !== 'DIAS') {
+            return $this->calcularCantidad($tipo, $d);
+        }
+
+        $base = $d;
+        if (! empty($d['fecha_fin_base'])) {
+            $base['fecha_fin'] = $d['fecha_fin_base'];
+        }
+
+        return $this->calcularCantidad($tipo, $base) + $extra;
     }
 
     private function calcularCantidad(array $tipo, array $d): float

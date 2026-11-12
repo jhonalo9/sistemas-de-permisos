@@ -15,7 +15,7 @@ class TipoSolicitudModel extends Model
         'anticipacion_dias_habiles','permite_mismo_dia','max_horas_semana',
         'max_horas_dia','requiere_entrega_cargo','autoridad_aprobacion','tipo_sustento',
         'requiere_sustento','solo_sexo','permite_regularizar',
-        'dias_calendario','base_legal','plazo_regularizacion_dias','activo',
+        'dias_calendario','ajustar_siguiente_habil','base_legal','plazo_regularizacion_dias','activo',
     ];
 
     public function activos(): array

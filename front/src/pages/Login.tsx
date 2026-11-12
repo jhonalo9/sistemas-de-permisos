@@ -29,6 +29,7 @@ export default function Login() {
 
   const redirectByRole = (roles: string[]) => {
     if (roles.includes('ADMIN')) return navigate('/admin');
+    if (roles.includes('GERENCIA')) return navigate('/gerencia/aprobaciones');
     if (roles.includes('RRHH')) return navigate('/rrhh/panel');
     if (roles.includes('JEFE')) return navigate('/jefe/aprobaciones');
     if (roles.includes('CONTROL')) return navigate('/control/lectura');

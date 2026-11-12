@@ -97,6 +97,24 @@ class RrhhController extends BaseApiController
             return ApiResponse::error($e->getMessage(), 422);
         }
 
+        $requiereGerencia = ($tipo['categoria'] ?? '') === 'LICENCIA'
+            && ($tipo['unidad_medida'] ?? '') === 'DIAS'
+            && (float) $s['cantidad'] >= 20
+            && in_array($tipo['autoridad_aprobacion'] ?? 'RRHH', ['GERENCIA', 'TITULAR'], true);
+
+        if ($requiereGerencia) {
+            $svc->cambiarEstado($id, 'PENDIENTE_GERENCIA', $this->idUsuario(),
+                'Proyectada por RRHH; pendiente de aprobación de Gerencia.', [
+                    'nro_resolucion'   => $d['nro_resolucion'],
+                    'fecha_resolucion' => $d['fecha_resolucion'],
+                ]);
+
+            return ApiResponse::ok(null, 200, [
+                'mensaje'           => 'Solicitud derivada a Gerencia para su aprobación.',
+                'requiere_gerencia' => true,
+            ]);
+        }
+
         $svc->cambiarEstado($id, 'APROBADA_RRHH', $this->idUsuario(), 'Aprobada por RRHH.', [
             'nro_resolucion'   => $d['nro_resolucion'],
             'fecha_resolucion' => $d['fecha_resolucion'],
@@ -104,7 +122,7 @@ class RrhhController extends BaseApiController
         $svc->consumirSaldo($id);
 
         $token = $s['token_codigo'] ?? null;
-        if ($tipo && $tipo['unidad_medida'] === 'HORAS' && empty($token)) {
+        if ($tipo && ($tipo['unidad_medida'] === 'HORAS' || $tipo['codigo'] === 'PER_COMISION_SERVICIO') && empty($token)) {
             $token = strtoupper(bin2hex(random_bytes(8)));
             db_connect()->table('permiso_solicitud_papeleta')
                 ->where('id_solicitud', $id)
@@ -159,7 +177,7 @@ class RrhhController extends BaseApiController
     public function papeletaPdf(int $id)
     {
         $s = db_connect()->table('permiso_solicitud_papeleta s')
-            ->select('s.estado, t.unidad_medida')
+            ->select('s.estado, t.unidad_medida, t.codigo')
             ->join('permiso_tipo_solicitud t', 't.id_tipo = s.id_tipo')
             ->where('s.id_solicitud', $id)
             ->get()->getRowArray();
@@ -168,8 +186,8 @@ class RrhhController extends BaseApiController
         if ($s['estado'] !== 'APROBADA_RRHH') {
             return ApiResponse::error('Solo se genera papeleta de una solicitud aprobada por RRHH.', 422);
         }
-        if ($s['unidad_medida'] !== 'HORAS') {
-            return ApiResponse::error('La papeleta solo aplica a permisos por horas.', 422);
+        if ($s['unidad_medida'] !== 'HORAS' && $s['codigo'] !== 'PER_COMISION_SERVICIO') {
+            return ApiResponse::error('La papeleta solo aplica a permisos por horas o comisión de servicio.', 422);
         }
 
         $pdf = (new \App\Libraries\PapeletaPdf())->generar($id);

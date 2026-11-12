@@ -48,12 +48,17 @@ export default function ValidarSolicitud() {
 
   const onSubmit = async (datos: any) => {
     try {
-      await apiClient<any>(`/rrhh/${id}/validar`, {
+      const res = await apiClient<any>(`/rrhh/${id}/validar`, {
         method: 'POST',
         body: datos,
       });
+      if ((res as any).requiere_gerencia) {
+        toast.success('Derivada a Gerencia', 'La solicitud requiere aprobación de Gerencia.');
+        navigate('/rrhh/bandeja');
+        return;
+      }
       toast.success('Solicitud validada', 'La solicitud ha sido aprobada por RRHH.');
-      if (solicitud?.tipo?.unidad_medida === 'HORAS') {
+      if (solicitud?.tipo?.unidad_medida === 'HORAS' || solicitud?.tipo?.codigo === 'PER_COMISION_SERVICIO') {
         navigate(`/rrhh/papeleta/${id}`);
       } else {
         navigate('/rrhh/bandeja');
@@ -197,6 +202,18 @@ export default function ValidarSolicitud() {
                 <p className="text-xs text-gray-500 uppercase">Motivo</p>
                 <p className="font-medium text-text">{solicitud.motivo || '—'}</p>
               </div>
+              {solicitud.condiciones && solicitud.condiciones.length > 0 && (
+                <div className="col-span-2">
+                  <p className="text-xs text-gray-500 uppercase">Condiciones especiales</p>
+                  <ul className="mt-1 space-y-1 text-sm text-text">
+                    {solicitud.condiciones.map((c: any) => (
+                      <li key={c.id_condicion}>
+                        • {c.nombre} (+{Number(c.dias_extra)} día(s))
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
           </Card>
 

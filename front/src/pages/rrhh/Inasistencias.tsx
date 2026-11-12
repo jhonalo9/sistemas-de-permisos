@@ -230,6 +230,11 @@ export default function Inasistencias() {
                 </div>
                 <p className="text-sm text-text mt-2">{TIPOS.find((t) => t.value === r.tipo)?.label || r.tipo}</p>
                 <p className="text-sm text-gray-600 mt-1">Días de descuento: {r.dias_descuento}</p>
+                {r.fecha_limite_justificacion && (
+                  <p className="text-sm text-gray-600 mt-1">
+                    Límite para justificar: {formatearFecha(r.fecha_limite_justificacion)}
+                  </p>
+                )}
                 {puedeEditar && (
                   <Button variant="outline" className="w-full mt-3" onClick={() => abrirEditar(r)}>
                     <Edit2 className="w-4 h-4 mr-1" /> Editar
@@ -243,7 +248,7 @@ export default function Inasistencias() {
             <table className="min-w-full divide-y divide-gray-200 bg-white">
               <thead className="bg-gray-50">
                 <tr>
-                  {['Fecha', 'Servidor', 'Unidad', 'Tipo', 'Estado', 'Días descuento', 'Comunicación', 'Sustento', 'Acciones'].map((h) => (
+                  {['Fecha', 'Servidor', 'Unidad', 'Tipo', 'Estado', 'Días descuento', 'Comunicación', 'Sustento', 'Límite justificar', 'Acciones'].map((h) => (
                     <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">{h}</th>
                   ))}
                 </tr>
@@ -266,6 +271,7 @@ export default function Inasistencias() {
                     <td className="px-4 py-3 text-sm">{r.dias_descuento}</td>
                     <td className="px-4 py-3 text-sm">{r.fecha_comunicacion ? formatearFecha(r.fecha_comunicacion) : '—'}</td>
                     <td className="px-4 py-3 text-sm">{r.fecha_sustento ? formatearFecha(r.fecha_sustento) : '—'}</td>
+                    <td className="px-4 py-3 text-sm">{r.fecha_limite_justificacion ? formatearFecha(r.fecha_limite_justificacion) : '—'}</td>
                     <td className="px-4 py-3">
                       {puedeEditar && (
                         <Button variant="outline" onClick={() => abrirEditar(r)}>

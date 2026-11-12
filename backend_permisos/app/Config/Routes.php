@@ -73,6 +73,14 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], static function ($
             $r->get('reportes/exportar',   'ReportesController::exportar');
         });
 
+        // ---- GERENCIA ----
+        $r->group('gerencia', ['filter' => 'role:GERENCIA,ADMIN'], static function ($r) {
+            $r->get('pendientes',       'GerenciaController::pendientes');
+            $r->get('(:num)',           'GerenciaController::detalle/$1');
+            $r->post('(:num)/aprobar',  'GerenciaController::aprobar/$1');
+            $r->post('(:num)/rechazar', 'GerenciaController::rechazar/$1');
+        });
+
         // ---- CONTROL ----
         $r->group('marcaciones', ['filter' => 'role:CONTROL,RRHH,ADMIN'], static function ($r) {
             $r->post('registrar',    'MarcacionesController::registrar');
@@ -97,6 +105,9 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], static function ($
             $r->get('tipos',            'AdminController::listarTipos');
             $r->post('tipos',           'AdminController::crearTipo');
             $r->put('tipos/(:num)',     'AdminController::actualizarTipo/$1');
+            $r->post('tipos/(:num)/condiciones', 'AdminController::crearCondicion/$1');
+            $r->put('condiciones/(:num)',        'AdminController::actualizarCondicion/$1');
+            $r->delete('condiciones/(:num)',     'AdminController::eliminarCondicion/$1');
 
             // Usuarios
             $r->get('usuarios',         'AdminController::listarUsuarios');

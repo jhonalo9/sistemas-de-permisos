@@ -27,6 +27,7 @@ const defaultValues = {
   requiere_sustento: true,
   permite_regularizar: false,
   dias_calendario: true,
+  ajustar_siguiente_habil: false,
   base_legal: '',
   plazo_regularizacion_dias: '',
   activo: true,
@@ -39,6 +40,16 @@ export default function TiposSolicitud() {
   const [showForm, setShowForm] = React.useState(false);
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
+  const [condiciones, setCondiciones] = React.useState<any[]>([]);
+  const [nuevaCond, setNuevaCond] = React.useState<any>({
+    codigo: '',
+    nombre: '',
+    dias_extra: '0',
+    dias_calendario: true,
+    grupo: '',
+    descripcion: '',
+  });
+  const [savingCond, setSavingCond] = React.useState(false);
 
   const {
     register,
@@ -71,6 +82,7 @@ export default function TiposSolicitud() {
 
   const abrirNuevo = () => {
     setEditing(null);
+    setCondiciones([]);
     reset(defaultValues);
     setShowForm(true);
   };
@@ -78,6 +90,7 @@ export default function TiposSolicitud() {
   const cerrarForm = () => {
     setShowForm(false);
     setEditing(null);
+    setCondiciones([]);
     reset(defaultValues);
   };
 
@@ -128,9 +141,19 @@ export default function TiposSolicitud() {
       requiere_sustento: asBool(tipo.requiere_sustento),
       permite_regularizar: asBool(tipo.permite_regularizar),
       dias_calendario: asBool(tipo.dias_calendario),
+      ajustar_siguiente_habil: asBool(tipo.ajustar_siguiente_habil),
       base_legal: tipo.base_legal ?? '',
       plazo_regularizacion_dias: tipo.plazo_regularizacion_dias ?? '',
       activo: asBool(tipo.activo),
+    });
+    setCondiciones(tipo.condiciones || []);
+    setNuevaCond({
+      codigo: '',
+      nombre: '',
+      dias_extra: '0',
+      dias_calendario: true,
+      grupo: '',
+      descripcion: '',
     });
     setShowForm(true);
   };
@@ -146,6 +169,74 @@ export default function TiposSolicitud() {
       await cargar();
     } catch (e: any) {
       toast.error('Error al desactivar', e?.mensaje);
+    }
+  };
+
+  const agregarCondicion = async () => {
+    if (!editing) return;
+    if (!nuevaCond.codigo.trim() || !nuevaCond.nombre.trim()) {
+      toast.error('Datos incompletos', 'Indique el código y el nombre de la condición.');
+      return;
+    }
+    setSavingCond(true);
+    try {
+      const res = await apiClient<any>(`/admin/tipos/${editing.id_tipo}/condiciones`, {
+        method: 'POST',
+        body: {
+          codigo: nuevaCond.codigo,
+          nombre: nuevaCond.nombre,
+          dias_extra: Number(nuevaCond.dias_extra || 0),
+          dias_calendario: nuevaCond.dias_calendario ? 1 : 0,
+          grupo: nuevaCond.grupo,
+          descripcion: nuevaCond.descripcion,
+        },
+      });
+      setCondiciones((prev) => [
+        ...prev,
+        {
+          id_condicion: res.data?.id_condicion ?? Date.now(),
+          codigo: nuevaCond.codigo.toUpperCase(),
+          nombre: nuevaCond.nombre,
+          dias_extra: Number(nuevaCond.dias_extra || 0),
+          dias_calendario: nuevaCond.dias_calendario ? 1 : 0,
+          grupo: nuevaCond.grupo ? nuevaCond.grupo.toUpperCase() : null,
+          descripcion: nuevaCond.descripcion,
+          activo: 1,
+        },
+      ]);
+      setNuevaCond({ codigo: '', nombre: '', dias_extra: '0', dias_calendario: true, grupo: '', descripcion: '' });
+      toast.success('Condición agregada', 'La regla condicional fue creada.');
+    } catch (e: any) {
+      toast.error('Error al crear condición', e?.mensaje);
+    } finally {
+      setSavingCond(false);
+    }
+  };
+
+  const eliminarCondicion = async (id: number) => {
+    if (!window.confirm('¿Eliminar esta condición?')) return;
+    try {
+      await apiClient(`/admin/condiciones/${id}`, { method: 'DELETE' });
+      setCondiciones((prev) => prev.filter((c) => c.id_condicion !== id));
+      toast.success('Condición eliminada', 'La regla ya no se aplicará.');
+    } catch (e: any) {
+      toast.error('Error al eliminar', e?.mensaje);
+    }
+  };
+
+  const alternarCondicion = async (c: any) => {
+    try {
+      await apiClient(`/admin/condiciones/${c.id_condicion}`, {
+        method: 'PUT',
+        body: { activo: asBool(c.activo) ? 0 : 1 },
+      });
+      setCondiciones((prev) =>
+        prev.map((x) =>
+          x.id_condicion === c.id_condicion ? { ...x, activo: asBool(c.activo) ? 0 : 1 } : x
+        )
+      );
+    } catch (e: any) {
+      toast.error('Error al actualizar', e?.mensaje);
     }
   };
 
@@ -240,6 +331,7 @@ export default function TiposSolicitud() {
                 { name: 'requiere_sustento', label: 'Requiere sustento' },
                 { name: 'permite_regularizar', label: 'Permite regularizar' },
                 { name: 'dias_calendario', label: 'Días calendario' },
+                { name: 'ajustar_siguiente_habil', label: 'Trasladar al siguiente día hábil' },
                 { name: 'anticipacion_dias_habiles', label: 'Anticipación en días hábiles' },
                 { name: 'permite_mismo_dia', label: 'Permite solicitud el mismo día' },
                 { name: 'requiere_entrega_cargo', label: 'Requiere entrega de cargo' },
@@ -251,6 +343,96 @@ export default function TiposSolicitud() {
                 </label>
               ))}
             </div>
+
+            {editing && (
+              <div className="md:col-span-2 pt-4 border-t border-border space-y-4">
+                <div>
+                  <h3 className="font-semibold text-text">Reglas condicionales</h3>
+                  <p className="text-sm text-text-muted">
+                    Condiciones que el servidor puede declarar al solicitar. Los días extra se suman al plazo.
+                    Si dos condiciones comparten grupo, solo se podrá elegir una.
+                  </p>
+                </div>
+
+                {condiciones.length === 0 ? (
+                  <p className="text-sm text-text-muted">Este tipo aún no tiene condiciones configuradas.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {condiciones.map((c) => (
+                      <div
+                        key={c.id_condicion}
+                        className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-xl border border-border bg-slate-50/60"
+                      >
+                        <div className="text-sm">
+                          <p className="font-medium text-text">
+                            {c.nombre}
+                            {!asBool(c.activo) && <span className="ml-2 text-xs text-red-600">(inactiva)</span>}
+                          </p>
+                          <p className="text-text-muted text-xs">
+                            {c.codigo} · +{Number(c.dias_extra)} {asBool(c.dias_calendario) ? 'día(s) calendario' : 'día(s) hábil(es)'}
+                            {c.grupo ? ` · grupo ${c.grupo}` : ''}
+                          </p>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button type="button" variant="outline" onClick={() => alternarCondicion(c)}>
+                            {asBool(c.activo) ? 'Desactivar' : 'Activar'}
+                          </Button>
+                          <Button type="button" variant="outline" onClick={() => eliminarCondicion(c.id_condicion)}>
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 rounded-xl border border-dashed border-border">
+                  <Input
+                    label="Código"
+                    value={nuevaCond.codigo}
+                    onChange={(e) => setNuevaCond({ ...nuevaCond, codigo: e.target.value })}
+                    placeholder="EJ. PARTO_MULTIPLE"
+                  />
+                  <Input
+                    label="Nombre visible"
+                    value={nuevaCond.nombre}
+                    onChange={(e) => setNuevaCond({ ...nuevaCond, nombre: e.target.value })}
+                  />
+                  <Input
+                    type="number"
+                    label="Días extra"
+                    value={nuevaCond.dias_extra}
+                    onChange={(e) => setNuevaCond({ ...nuevaCond, dias_extra: e.target.value })}
+                  />
+                  <Input
+                    label="Grupo (opcional)"
+                    value={nuevaCond.grupo}
+                    onChange={(e) => setNuevaCond({ ...nuevaCond, grupo: e.target.value })}
+                    helper="Condiciones del mismo grupo son excluyentes."
+                  />
+                  <Input
+                    label="Descripción (opcional)"
+                    value={nuevaCond.descripcion}
+                    onChange={(e) => setNuevaCond({ ...nuevaCond, descripcion: e.target.value })}
+                  />
+                  <label className="flex items-center gap-2 text-sm text-text cursor-pointer mt-6">
+                    <input
+                      type="checkbox"
+                      checked={nuevaCond.dias_calendario}
+                      onChange={(e) => setNuevaCond({ ...nuevaCond, dias_calendario: e.target.checked })}
+                      className="rounded border-border text-primary-600 focus:ring-primary-500"
+                    />
+                    Días calendario
+                  </label>
+                  <div className="sm:col-span-2">
+                    <Button type="button" variant="outline" onClick={agregarCondicion} disabled={savingCond}>
+                      <Plus className="w-4 h-4" />
+                      {savingCond ? 'Guardando...' : 'Agregar condición'}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="md:col-span-2 pt-4 border-t border-border flex gap-3">
               <Button type="submit" variant="primary" disabled={saving}>

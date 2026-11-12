@@ -30,6 +30,28 @@ interface NuevaSolicitudProps {
   onClose?: () => void;
 }
 
+function sumarDiasFecha(fecha: string, dias: number, calendario: boolean): string {
+  const total = Math.ceil(Number(dias) || 0);
+  if (total <= 0) return fecha;
+
+  const cursor = new Date(`${fecha}T12:00:00`);
+  if (Number.isNaN(cursor.getTime())) return fecha;
+
+  let sumados = 0;
+  while (sumados < total) {
+    cursor.setDate(cursor.getDate() + 1);
+    if (calendario) {
+      sumados++;
+      continue;
+    }
+    const dow = cursor.getDay();
+    if (dow === 0 || dow === 6) continue;
+    sumados++;
+  }
+
+  return `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}-${String(cursor.getDate()).padStart(2, '0')}`;
+}
+
 export default function NuevaSolicitud({ embedded = false, onClose }: NuevaSolicitudProps) {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -40,6 +62,7 @@ export default function NuevaSolicitud({ embedded = false, onClose }: NuevaSolic
   const [archivos, setArchivos] = React.useState<File[]>([]);
   const [adjuntosExistentes, setAdjuntosExistentes] = React.useState<any[]>([]);
   const [cantidad, setCantidad] = React.useState(0);
+  const [condicionesSel, setCondicionesSel] = React.useState<any[]>([]);
   const [submitting, setSubmitting] = React.useState(false);
   const [loadingDraft, setLoadingDraft] = React.useState(!!draftId);
 
@@ -73,6 +96,7 @@ export default function NuevaSolicitud({ embedded = false, onClose }: NuevaSolic
       hora_inicio: '',
       hora_fin: '',
       motivo: '',
+      lugar_comision: '',
       entrega_cargo: false,
     },
   });
@@ -112,13 +136,19 @@ export default function NuevaSolicitud({ embedded = false, onClose }: NuevaSolic
           const tipo = activos.find((t: any) => asNum(t.id_tipo) === asNum(sol.id_tipo)) || sol.tipo || null;
           setTipoSeleccionado(tipo);
           setAdjuntosExistentes(sol.adjuntos || []);
+          setCondicionesSel(
+            (tipo?.condiciones || []).filter((c: any) =>
+              (sol.condiciones || []).some((sc: any) => asNum(sc.id_condicion) === asNum(c.id_condicion))
+            )
+          );
           reset({
             id_tipo: String(sol.id_tipo ?? ''),
             fecha_inicio: sol.fecha_inicio || '',
-            fecha_fin: sol.fecha_fin || '',
+            fecha_fin: sol.fecha_fin_base || sol.fecha_fin || '',
             hora_inicio: (sol.hora_inicio || '').slice(0, 5),
             hora_fin: (sol.hora_fin || '').slice(0, 5),
             motivo: sol.motivo || '',
+            lugar_comision: sol.lugar_comision || '',
             entrega_cargo: asBool(sol.entrega_cargo),
           });
         } else {
@@ -126,6 +156,7 @@ export default function NuevaSolicitud({ embedded = false, onClose }: NuevaSolic
           setAdjuntosExistentes([]);
           setArchivos([]);
           setCantidad(0);
+          setCondicionesSel([]);
           reset({
             id_tipo: '',
             fecha_inicio: '',
@@ -144,6 +175,18 @@ export default function NuevaSolicitud({ embedded = false, onClose }: NuevaSolic
     })();
   }, [draftId]);
 
+  const condicionesDisponibles = (tipoSeleccionado?.condiciones || []).filter((c: any) => asBool(c.activo));
+  const diasExtra = condicionesSel.reduce((acc: number, c: any) => acc + Number(c.dias_extra || 0), 0);
+
+  const fechaFinEfectiva = React.useMemo(() => {
+    if (!fechaFin) return fechaFin;
+    let f = fechaFin;
+    condicionesSel.forEach((c: any) => {
+      f = sumarDiasFecha(f, Number(c.dias_extra || 0), asBool(c.dias_calendario));
+    });
+    return f;
+  }, [fechaFin, condicionesSel]);
+
   React.useEffect(() => {
     if (!tipoSeleccionado) {
       setCantidad(0);
@@ -152,13 +195,24 @@ export default function NuevaSolicitud({ embedded = false, onClose }: NuevaSolic
     if (tipoSeleccionado.unidad_medida === 'HORAS' && horaInicio && horaFin) {
       setCantidad(calcularHorasEntre(horaInicio, horaFin));
     } else if (tipoSeleccionado.unidad_medida === 'DIAS' && fechaInicio && fechaFin) {
-      setCantidad(calcularDiasEntre(fechaInicio, fechaFin));
+      setCantidad(calcularDiasEntre(fechaInicio, fechaFin) + diasExtra);
     } else if (tipoSeleccionado.categoria === 'PERMISO' && fechaInicio) {
-      setCantidad(tipoSeleccionado.unidad_medida === 'HORAS' ? 0 : 1);
+      setCantidad(tipoSeleccionado.unidad_medida === 'HORAS' ? 0 : 1 + diasExtra);
     } else {
       setCantidad(0);
     }
-  }, [fechaInicio, fechaFin, horaInicio, horaFin, tipoSeleccionado]);
+  }, [fechaInicio, fechaFin, diasExtra, horaInicio, horaFin, tipoSeleccionado]);
+
+  const alternarCondicion = (condicion: any) => {
+    setCondicionesSel((prev) => {
+      const ya = prev.some((c) => asNum(c.id_condicion) === asNum(condicion.id_condicion));
+      if (ya) return prev.filter((c) => asNum(c.id_condicion) !== asNum(condicion.id_condicion));
+      const sinGrupo = condicion.grupo
+        ? prev.filter((c) => c.grupo !== condicion.grupo)
+        : prev;
+      return [...sinGrupo, condicion];
+    });
+  };
 
   const requiereSustento = asBool(tipoSeleccionado?.requiere_sustento);
   const tieneSustento = archivos.length > 0 || adjuntosExistentes.length > 0;
@@ -187,6 +241,10 @@ export default function NuevaSolicitud({ embedded = false, onClose }: NuevaSolic
     if (datos.hora_inicio) formData.append('hora_inicio', datos.hora_inicio);
     if (datos.hora_fin) formData.append('hora_fin', datos.hora_fin);
     if (datos.motivo) formData.append('motivo', datos.motivo);
+    if (datos.lugar_comision) formData.append('lugar_comision', datos.lugar_comision);
+    if (condicionesSel.length > 0) {
+      formData.append('condiciones', condicionesSel.map((c) => c.id_condicion).join(','));
+    }
     formData.append('entrega_cargo', datos.entrega_cargo ? '1' : '0');
     if (borrador) formData.append('borrador', '1');
     archivos.forEach((f) => formData.append('adjuntos', f));
@@ -298,6 +356,7 @@ export default function NuevaSolicitud({ embedded = false, onClose }: NuevaSolic
                 setValue('id_tipo', val ? Number(val) : '', { shouldValidate: true });
                 const t = tipos.find((x) => String(x.id_tipo) === String(val));
                 setTipoSeleccionado(t || null);
+                setCondicionesSel([]);
               }}
               error={errors.id_tipo}
             />
@@ -357,6 +416,49 @@ export default function NuevaSolicitud({ embedded = false, onClose }: NuevaSolic
             )}
           </div>
 
+          {condicionesDisponibles.length > 0 && (
+            <div className="p-4 bg-primary-50/50 rounded-xl border border-primary-100 space-y-3">
+              <div>
+                <p className="font-semibold text-text">Condiciones especiales</p>
+                <p className="text-sm text-text-muted">
+                  Marque si su caso corresponde a alguna condición. Los días adicionales se suman al plazo.
+                </p>
+              </div>
+              <div className="space-y-2">
+                {condicionesDisponibles.map((c: any) => (
+                  <label key={c.id_condicion} className="flex items-start gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="mt-0.5 rounded border-border text-primary-600 focus:ring-primary-500"
+                      checked={condicionesSel.some((s) => asNum(s.id_condicion) === asNum(c.id_condicion))}
+                      onChange={() => alternarCondicion(c)}
+                    />
+                    <span className="text-sm text-text">
+                      {c.nombre}
+                      <span className="text-text-muted">
+                        {' '}(+{Number(c.dias_extra)} {asBool(c.dias_calendario) ? 'día(s) calendario' : 'día(s) hábil(es)'})
+                      </span>
+                      {c.descripcion && (
+                        <span className="block text-xs text-text-muted">{c.descripcion}</span>
+                      )}
+                    </span>
+                  </label>
+                ))}
+              </div>
+              {diasExtra > 0 && fechaFin && (
+                <p className="text-sm text-primary-700">
+                  Fecha fin con extensión: <strong>{fechaFinEfectiva}</strong> (+{diasExtra} día(s)).
+                </p>
+              )}
+            </div>
+          )}
+
+          {asBool(tipoSeleccionado?.ajustar_siguiente_habil) && (
+            <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-xl p-3">
+              Si la fecha elegida cae en un día no laborable, se trasladará automáticamente al siguiente día hábil.
+            </p>
+          )}
+
           {tipoSeleccionado && tipoSeleccionado.categoria === 'LICENCIA' && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Input label="Fecha de inicio" type="date" {...register('fecha_inicio')} error={errors.fecha_inicio} />
@@ -397,15 +499,28 @@ export default function NuevaSolicitud({ embedded = false, onClose }: NuevaSolic
               </div>
               {cantidad > 0 &&
                 tipoSeleccionado.max_por_solicitud != null &&
-                cantidad > Number(tipoSeleccionado.max_por_solicitud) && (
+                cantidad - diasExtra > Number(tipoSeleccionado.max_por_solicitud) && (
                   <p className="mt-1 text-sm text-red-600 font-medium">
                     Alerta: excede el tope máximo de {tipoSeleccionado.max_por_solicitud} por solicitud.
                   </p>
                 )}
+              {diasExtra > 0 && (
+                <p className="mt-1 text-xs text-text-muted">
+                  Incluye {diasExtra} día(s) adicional(es) por condiciones especiales.
+                </p>
+              )}
             </div>
           )}
 
           <TextArea label="Motivo" {...register('motivo')} rows={4} error={errors.motivo} />
+
+          {tipoSeleccionado?.codigo === 'PER_COMISION_SERVICIO' && (
+            <Input
+              label="Lugar de comisión"
+              placeholder="Ciudad o sede donde se realizará la comisión"
+              {...register('lugar_comision')}
+            />
+          )}
 
           {requiereSustento && (
             <div className="p-4 bg-amber-50 rounded-xl border border-amber-200">

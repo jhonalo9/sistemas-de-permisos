@@ -13,7 +13,87 @@ class AdminController extends BaseApiController
     {
         $activos = $this->request->getGet('activo');
         $m = new TipoSolicitudModel();
-        return ApiResponse::ok($activos === null ? $m->findAll() : $m->where('activo', (int) $activos)->findAll());
+        $rows = $activos === null ? $m->findAll() : $m->where('activo', (int) $activos)->findAll();
+
+        $db = db_connect();
+        foreach ($rows as &$r) {
+            $r['condiciones'] = $db->table('permiso_tipo_condicion')
+                ->where('id_tipo', $r['id_tipo'])
+                ->orderBy('id_condicion')
+                ->get()->getResultArray();
+        }
+
+        return ApiResponse::ok($rows);
+    }
+
+    public function crearCondicion(int $idTipo)
+    {
+        if (! db_connect()->table('permiso_tipo_solicitud')->where('id_tipo', $idTipo)->countAllResults()) {
+            return ApiResponse::error('Tipo de solicitud no encontrado.', 404);
+        }
+        $d = $this->datos();
+        if (empty($d['codigo']) || empty($d['nombre'])) {
+            return ApiResponse::error('El código y el nombre de la condición son obligatorios.', 422);
+        }
+        if (isset($d['dias_extra']) && (! is_numeric($d['dias_extra']) || (float) $d['dias_extra'] < 0)) {
+            return ApiResponse::error('Los días extra deben ser un número mayor o igual a cero.', 422);
+        }
+
+        $db = db_connect();
+        try {
+            $db->table('permiso_tipo_condicion')->insert([
+                'id_tipo'         => $idTipo,
+                'codigo'          => strtoupper(trim((string) $d['codigo'])),
+                'nombre'          => trim((string) $d['nombre']),
+                'dias_extra'      => (float) ($d['dias_extra'] ?? 0),
+                'dias_calendario' => array_key_exists('dias_calendario', $d) ? (int) (bool) $d['dias_calendario'] : 1,
+                'grupo'           => ! empty($d['grupo']) ? strtoupper(trim((string) $d['grupo'])) : null,
+                'descripcion'     => $d['descripcion'] ?? null,
+                'activo'          => array_key_exists('activo', $d) ? (int) (bool) $d['activo'] : 1,
+            ]);
+            return ApiResponse::ok(['id_condicion' => (int) $db->insertID()], 201);
+        } catch (\Throwable $e) {
+            return ApiResponse::error('No se pudo crear la condición. Verifique que el código no se repita para este tipo.', 409);
+        }
+    }
+
+    public function actualizarCondicion(int $id)
+    {
+        $d = $this->datos();
+        if ($d === []) return ApiResponse::error('Datos inválidos.', 422);
+
+        $update = [];
+        foreach (['codigo', 'nombre', 'grupo', 'descripcion'] as $campo) {
+            if (array_key_exists($campo, $d)) {
+                $valor = $d[$campo];
+                if ($valor === '' || $valor === null) {
+                    $update[$campo] = null;
+                } elseif (in_array($campo, ['codigo', 'grupo'], true)) {
+                    $update[$campo] = strtoupper(trim((string) $valor));
+                } else {
+                    $update[$campo] = trim((string) $valor);
+                }
+            }
+        }
+        if (array_key_exists('dias_extra', $d)) {
+            if (! is_numeric($d['dias_extra']) || (float) $d['dias_extra'] < 0) {
+                return ApiResponse::error('Los días extra deben ser un número mayor o igual a cero.', 422);
+            }
+            $update['dias_extra'] = (float) $d['dias_extra'];
+        }
+        if (array_key_exists('dias_calendario', $d)) $update['dias_calendario'] = (int) (bool) $d['dias_calendario'];
+        if (array_key_exists('activo', $d)) $update['activo'] = (int) (bool) $d['activo'];
+
+        if ($update === []) return ApiResponse::error('No hay cambios para guardar.', 422);
+
+        db_connect()->table('permiso_tipo_condicion')->where('id_condicion', $id)->update($update);
+        return ApiResponse::ok(null, 200, ['mensaje' => 'Condición actualizada.']);
+    }
+
+    public function eliminarCondicion(int $id)
+    {
+        db_connect()->table('permiso_tipo_condicion')->where('id_condicion', $id)->delete();
+        return ApiResponse::ok(null, 200, ['mensaje' => 'Condición eliminada.']);
     }
 
     public function crearTipo()
@@ -286,28 +366,54 @@ class AdminController extends BaseApiController
     public function actualizarConfiguracion()
     {
         $d = $this->datos();
-        $hora = $d['hora_corte_jornada'] ?? null;
 
-        if ($hora !== null) {
-            if (! preg_match('/^\d{2}:\d{2}$/', (string) $hora)) {
+        $permitidas = [
+            'hora_corte_jornada' => 'Hora oficial de fin de jornada para alertas de no retorno',
+            'lugar_expedicion' => 'Lugar de expedición que se imprime en la papeleta',
+            'dias_justificacion_abandono' => 'Días hábiles para justificar un abandono de centro de labores',
+            'dias_justificacion_enfermedad' => 'Días hábiles para presentar el sustento de enfermedad (CITT)',
+        ];
+
+        $valores = [];
+        if (array_key_exists('hora_corte_jornada', $d)) {
+            $hora = (string) $d['hora_corte_jornada'];
+            if (! preg_match('/^\d{2}:\d{2}$/', $hora)) {
                 return ApiResponse::error('La hora de corte debe tener formato HH:MM.', 422);
             }
-            [$hh, $mm] = array_map('intval', explode(':', (string) $hora));
+            [$hh, $mm] = array_map('intval', explode(':', $hora));
             if ($hh > 23 || $mm > 59) {
                 return ApiResponse::error('La hora de corte no es válida.', 422);
             }
+            $valores['hora_corte_jornada'] = $hora;
+        }
 
-            $db = db_connect();
-            $existe = $db->table('permiso_configuracion')->where('clave', 'hora_corte_jornada')->countAllResults();
+        if (array_key_exists('lugar_expedicion', $d)) {
+            $lugar = trim((string) $d['lugar_expedicion']);
+            if ($lugar === '' || mb_strlen($lugar) > 150) {
+                return ApiResponse::error('El lugar de expedición es obligatorio y no debe superar 150 caracteres.', 422);
+            }
+            $valores['lugar_expedicion'] = $lugar;
+        }
+
+        foreach (['dias_justificacion_abandono', 'dias_justificacion_enfermedad'] as $clave) {
+            if (! array_key_exists($clave, $d)) continue;
+            $valor = $d[$clave];
+            if (! is_numeric($valor) || (int) $valor < 0 || (int) $valor > 30) {
+                return ApiResponse::error('Los días de justificación deben ser un entero entre 0 y 30.', 422);
+            }
+            $valores[$clave] = (string) (int) $valor;
+        }
+
+        $db = db_connect();
+        foreach ($valores as $clave => $valor) {
+            $existe = $db->table('permiso_configuracion')->where('clave', $clave)->countAllResults();
             if ($existe) {
-                $db->table('permiso_configuracion')
-                    ->where('clave', 'hora_corte_jornada')
-                    ->update(['valor' => $hora]);
+                $db->table('permiso_configuracion')->where('clave', $clave)->update(['valor' => $valor]);
             } else {
                 $db->table('permiso_configuracion')->insert([
-                    'clave'       => 'hora_corte_jornada',
-                    'valor'       => $hora,
-                    'descripcion' => 'Hora oficial de fin de jornada para alertas de no retorno',
+                    'clave'       => $clave,
+                    'valor'       => $valor,
+                    'descripcion' => $permitidas[$clave],
                 ]);
             }
         }

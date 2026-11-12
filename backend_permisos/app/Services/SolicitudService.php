@@ -42,15 +42,18 @@ class SolicitudService
                 'id_tipo'       => (int) $datos['id_tipo'],
                 'fecha_inicio'  => $datos['fecha_inicio'] ?? null,
                 'fecha_fin'     => $datos['fecha_fin'] ?? null,
+                'fecha_fin_base' => $datos['fecha_fin_base'] ?? null,
                 'hora_inicio'   => $datos['hora_inicio'] ?? null,
                 'hora_fin'      => $datos['hora_fin'] ?? null,
                 'cantidad'      => $datos['cantidad'] ?? 0,
                 'entrega_cargo' => ! empty($datos['entrega_cargo']) ? 1 : 0,
                 'motivo'        => $datos['motivo'] ?? null,
+                'lugar_comision' => ! empty($datos['lugar_comision']) ? $datos['lugar_comision'] : null,
                 'estado'        => $estadoInicial,
             ], $snapshots), true);
 
             $this->insertarAdjuntos((int) $id, $archivos);
+            $this->insertarCondiciones((int) $id, $datos['_condiciones'] ?? []);
 
             $this->historial->insert([
                 'id_solicitud' => $id,
@@ -80,7 +83,7 @@ class SolicitudService
         $db->transBegin();
         try {
             $update = [];
-            foreach (['id_tipo', 'fecha_inicio', 'fecha_fin', 'hora_inicio', 'hora_fin', 'motivo', 'cantidad', 'entrega_cargo'] as $campo) {
+            foreach (['id_tipo', 'fecha_inicio', 'fecha_fin', 'fecha_fin_base', 'hora_inicio', 'hora_fin', 'motivo', 'lugar_comision', 'cantidad', 'entrega_cargo'] as $campo) {
                 if (array_key_exists($campo, $datos)) {
                     $valor = $datos[$campo];
                     $update[$campo] = ($valor === '' || $valor === null) ? null : $valor;
@@ -92,6 +95,9 @@ class SolicitudService
             }
 
             $this->insertarAdjuntos($idSolicitud, $archivos);
+            if (array_key_exists('_condiciones', $datos)) {
+                $this->insertarCondiciones($idSolicitud, $datos['_condiciones']);
+            }
 
             $db->transCommit();
             return $this->solicitudes->detalleCompleto($idSolicitud);
@@ -223,7 +229,7 @@ class SolicitudService
             ->where('s.id_servidor', $idServidor)
             ->whereIn('s.estado', [
                 'PENDIENTE', 'OBSERVADA', 'APROBADA_JEFE', 'APROBADA_RRHH',
-                'REGULARIZAR', 'EN_CURSO', 'EJECUTADA',
+                'PENDIENTE_GERENCIA', 'REGULARIZAR', 'EN_CURSO', 'EJECUTADA',
             ])
             ->where('s.fecha_inicio <=', $fechaFin)
             ->where('s.fecha_fin >=', $fechaInicio);
@@ -277,7 +283,12 @@ class SolicitudService
 
         $unidad = $tipo['unidad_medida'] ?? 'DIAS';
 
-        if ($tipo['max_por_solicitud'] !== null && $cantidad > (float) $tipo['max_por_solicitud']) {
+        $diasExtra = isset($datos['dias_extra'])
+            ? (float) $datos['dias_extra']
+            : ($excluirId !== null ? $this->diasExtraSolicitud($excluirId) : 0);
+        $cantidadBase = max(0, $cantidad - $diasExtra);
+
+        if ($tipo['max_por_solicitud'] !== null && $cantidadBase > (float) $tipo['max_por_solicitud']) {
             throw new \RuntimeException(
                 'La cantidad solicitada supera el máximo permitido por solicitud: '
                 . $this->numero($tipo['max_por_solicitud']) . ' ' . strtolower($unidad) . '.'
@@ -338,7 +349,7 @@ class SolicitudService
                     ->where('s.fecha_inicio >=', $anio . '-01-01')
                     ->where('s.fecha_inicio <=', $anio . '-12-31')
             );
-            if ($usadas + $cantidad > (float) $tipo['max_por_anio']) {
+            if ($usadas + $cantidadBase > (float) $tipo['max_por_anio']) {
                 throw new \RuntimeException(
                     'La cantidad acumulada del año supera el máximo permitido: '
                     . $this->numero($tipo['max_por_anio']) . ' ' . strtolower($unidad) . '.'
@@ -412,7 +423,7 @@ class SolicitudService
             ->where('s.id_tipo', $idTipo)
             ->whereIn('s.estado', [
                 'PENDIENTE', 'OBSERVADA', 'APROBADA_JEFE', 'APROBADA_RRHH',
-                'REGULARIZAR', 'EN_CURSO', 'EJECUTADA',
+                'PENDIENTE_GERENCIA', 'REGULARIZAR', 'EN_CURSO', 'EJECUTADA',
             ]);
 
         if ($excluirId !== null) {
@@ -426,6 +437,16 @@ class SolicitudService
     {
         $row = $builder->selectSum('s.cantidad')->get()->getRowArray();
         return (float) ($row['cantidad'] ?? 0);
+    }
+
+    private function diasExtraSolicitud(int $idSolicitud): float
+    {
+        $row = db_connect()->table('permiso_solicitud_condicion')
+            ->selectSum('dias_extra', 'total')
+            ->where('id_solicitud', $idSolicitud)
+            ->get()->getRowArray();
+
+        return (float) ($row['total'] ?? 0);
     }
 
     private function numero($valor): string
@@ -501,6 +522,20 @@ class SolicitudService
             'tamano_bytes' => $a['tamano'],
             'confidencial' => $a['confidencial'] ? 1 : 0,
         ], $archivos));
+    }
+
+    public function insertarCondiciones(int $idSolicitud, array $condiciones): void
+    {
+        $db = db_connect();
+        $db->table('permiso_solicitud_condicion')->where('id_solicitud', $idSolicitud)->delete();
+
+        foreach ($condiciones as $c) {
+            $db->table('permiso_solicitud_condicion')->insert([
+                'id_solicitud' => $idSolicitud,
+                'id_condicion' => (int) $c['id_condicion'],
+                'dias_extra'   => (float) ($c['dias_extra'] ?? 0),
+            ]);
+        }
     }
 
     private function servidor(int $idServidor): array

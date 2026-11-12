@@ -8,7 +8,7 @@ import { Table, Badge } from '@/components/common';
 import { User, Shield, Plus, Edit2 } from 'lucide-react';
 import { errorMessage, asBool } from '@/utils/format';
 
-const ROLES = ['SERVIDOR', 'JEFE', 'RRHH', 'CONTROL', 'ADMIN'];
+const ROLES = ['SERVIDOR', 'JEFE', 'RRHH', 'CONTROL', 'GERENCIA', 'ADMIN'];
 
 export default function UsuariosRoles() {
   const { toast } = useToast();

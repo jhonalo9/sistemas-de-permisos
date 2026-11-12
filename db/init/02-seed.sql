@@ -2,7 +2,7 @@ SET NAMES utf8mb4;
 USE SistemaPermisos;
 
 INSERT INTO permiso_rol (nombre) VALUES
-  ('SERVIDOR'),('JEFE'),('RRHH'),('CONTROL'),('ADMIN');
+  ('SERVIDOR'),('JEFE'),('RRHH'),('CONTROL'),('ADMIN'),('GERENCIA');
 
 INSERT INTO permiso_unidad_organica (nombre) VALUES
   ('Alcaldía'),('Gerencia General'),('Oficina de Gestión de Recursos Humanos'),
@@ -103,6 +103,36 @@ VALUES
    'GERENCIA', 'Partida de matrimonio', 1, 0, 1,
    'RISC arts. 30 y 42', NULL);
 
+UPDATE permiso_tipo_solicitud SET ajustar_siguiente_habil = 1 WHERE codigo = 'LIC_ONOMASTICO';
+
+INSERT INTO permiso_tipo_condicion
+  (id_tipo, codigo, nombre, dias_extra, dias_calendario, grupo, descripcion)
+SELECT id_tipo, 'FALLECE_OTRA_CIUDAD',
+       'El fallecimiento ocurrió en otra ciudad', 3, 1, 'FALLECIMIENTO',
+       'Agrega 3 días calendario al plazo por desplazamiento.'
+FROM permiso_tipo_solicitud WHERE codigo = 'LIC_FALLECIMIENTO';
+
+INSERT INTO permiso_tipo_condicion
+  (id_tipo, codigo, nombre, dias_extra, dias_calendario, grupo, descripcion)
+SELECT id_tipo, 'PARTO_COMPLICACIONES',
+       'Nacimiento prematuro o con complicaciones', 10, 1, 'PATERNIDAD',
+       'Extiende la licencia a 20 días calendario.'
+FROM permiso_tipo_solicitud WHERE codigo = 'LIC_PATERNIDAD';
+
+INSERT INTO permiso_tipo_condicion
+  (id_tipo, codigo, nombre, dias_extra, dias_calendario, grupo, descripcion)
+SELECT id_tipo, 'PARTO_MULTIPLE',
+       'Nacimiento múltiple', 20, 1, 'PATERNIDAD',
+       'Extiende la licencia a 30 días calendario.'
+FROM permiso_tipo_solicitud WHERE codigo = 'LIC_PATERNIDAD';
+
+INSERT INTO permiso_tipo_condicion
+  (id_tipo, codigo, nombre, dias_extra, dias_calendario, grupo, descripcion)
+SELECT id_tipo, 'PARTO_MULTIPLE',
+       'Nacimiento múltiple', 30, 1, 'MATERNIDAD',
+       'Agrega 30 días calendario al descanso por nacimiento múltiple.'
+FROM permiso_tipo_solicitud WHERE codigo = 'LIC_MATERNIDAD';
+
 INSERT INTO permiso_feriado (fecha, descripcion) VALUES
   ('2026-01-01', 'Año Nuevo'),
   ('2026-04-02', 'Jueves Santo'),
@@ -125,7 +155,10 @@ INSERT INTO permiso_puesto_control (nombre, ubicacion) VALUES
   ('Control de Personal - Sede Central', 'Ingreso principal');
 
 INSERT INTO permiso_configuracion (clave, valor, descripcion) VALUES
-  ('hora_corte_jornada', '17:00', 'Hora oficial de fin de jornada para alertas de no retorno');
+  ('hora_corte_jornada', '17:00', 'Hora oficial de fin de jornada para alertas de no retorno'),
+  ('lugar_expedicion', 'Chiclayo', 'Lugar de expedición que se imprime en la papeleta'),
+  ('dias_justificacion_abandono', '1', 'Días hábiles para justificar un abandono de centro de labores'),
+  ('dias_justificacion_enfermedad', '3', 'Días hábiles para presentar el sustento de enfermedad (CITT)');
 
 -- Usuario admin inicial (contraseña: Admin2026!)
 -- Hash bcrypt válido para 'Admin2026!' generado con password_hash('Admin2026!', PASSWORD_BCRYPT)
