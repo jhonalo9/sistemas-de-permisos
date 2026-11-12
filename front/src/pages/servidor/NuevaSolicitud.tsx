@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button, Input, Select, TextArea, DropZone, Card, useToast } from '@/components/common';
 import { calcularDiasEntre, calcularHorasEntre, categoriaLabel, unidadLabel, errorMessage, asBool, asNum } from '@/utils/format';
-import { AlertTriangle, FileText } from 'lucide-react';
+import { AlertTriangle, CalendarDays, Clock, FileText } from 'lucide-react';
 
 const schema = z
   .object({
@@ -63,6 +63,7 @@ export default function NuevaSolicitud({ embedded = false, onClose }: NuevaSolic
   const [adjuntosExistentes, setAdjuntosExistentes] = React.useState<any[]>([]);
   const [cantidad, setCantidad] = React.useState(0);
   const [condicionesSel, setCondicionesSel] = React.useState<any[]>([]);
+  const [unidadSeleccionada, setUnidadSeleccionada] = React.useState<'HORAS' | 'DIAS' | null>(null);
   const [submitting, setSubmitting] = React.useState(false);
   const [loadingDraft, setLoadingDraft] = React.useState(!!draftId);
 
@@ -135,6 +136,7 @@ export default function NuevaSolicitud({ embedded = false, onClose }: NuevaSolic
 
           const tipo = activos.find((t: any) => asNum(t.id_tipo) === asNum(sol.id_tipo)) || sol.tipo || null;
           setTipoSeleccionado(tipo);
+          setUnidadSeleccionada(tipo?.unidad_medida || sol.tipo?.unidad_medida || null);
           setAdjuntosExistentes(sol.adjuntos || []);
           setCondicionesSel(
             (tipo?.condiciones || []).filter((c: any) =>
@@ -153,6 +155,7 @@ export default function NuevaSolicitud({ embedded = false, onClose }: NuevaSolic
           });
         } else {
           setTipoSeleccionado(null);
+          setUnidadSeleccionada(null);
           setAdjuntosExistentes([]);
           setArchivos([]);
           setCantidad(0);
@@ -212,6 +215,40 @@ export default function NuevaSolicitud({ embedded = false, onClose }: NuevaSolic
         : prev;
       return [...sinGrupo, condicion];
     });
+  };
+
+  const tiposDisponibles = React.useMemo(() => {
+    const lista = tipos.filter((t) => t.unidad_medida === unidadSeleccionada);
+    if (
+      tipoSeleccionado &&
+      !lista.some((t) => asNum(t.id_tipo) === asNum(tipoSeleccionado.id_tipo))
+    ) {
+      return [...lista, tipoSeleccionado];
+    }
+    return lista;
+  }, [tipos, unidadSeleccionada, tipoSeleccionado]);
+
+  const reiniciarTipo = () => {
+    setValue('id_tipo', '', { shouldValidate: false });
+    setValue('fecha_inicio', '', { shouldValidate: false });
+    setValue('fecha_fin', '', { shouldValidate: false });
+    setValue('hora_inicio', '', { shouldValidate: false });
+    setValue('hora_fin', '', { shouldValidate: false });
+    setValue('lugar_comision', '', { shouldValidate: false });
+    setValue('entrega_cargo', false, { shouldValidate: false });
+    setTipoSeleccionado(null);
+    setCondicionesSel([]);
+    setCantidad(0);
+  };
+
+  const elegirUnidad = (unidad: 'HORAS' | 'DIAS') => {
+    setUnidadSeleccionada(unidad);
+    reiniciarTipo();
+  };
+
+  const cambiarUnidad = () => {
+    setUnidadSeleccionada(null);
+    reiniciarTipo();
   };
 
   const requiereSustento = asBool(tipoSeleccionado?.requiere_sustento);
@@ -329,6 +366,77 @@ export default function NuevaSolicitud({ embedded = false, onClose }: NuevaSolic
     );
   }
 
+  if (!unidadSeleccionada) {
+    const conteoHoras = tipos.filter((t) => t.unidad_medida === 'HORAS').length;
+    const conteoDias = tipos.filter((t) => t.unidad_medida === 'DIAS').length;
+
+    return (
+      <div className={embedded ? 'w-full' : 'max-w-3xl mx-auto space-y-6'}>
+        {!embedded && (
+          <div>
+            <h1 className="text-2xl font-bold text-text tracking-tight">Nueva solicitud</h1>
+            <p className="text-text-muted mt-1">
+              Primero elija cómo se medirá su permiso o licencia.
+            </p>
+          </div>
+        )}
+
+        <Card>
+          <div className="space-y-5">
+            <div>
+              <h2 className="text-lg font-semibold text-text">
+                ¿Cómo se medirá su solicitud?
+              </h2>
+              <p className="text-sm text-text-muted mt-1">
+                Elija una opción para mostrar solo los tipos de solicitud compatibles.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <button
+                type="button"
+                onClick={() => elegirUnidad('HORAS')}
+                className="group text-left p-5 rounded-2xl border-2 border-border bg-card hover:border-primary-400 hover:bg-primary-50/40 transition-all"
+              >
+                <div className="w-12 h-12 rounded-xl bg-primary-50 text-primary-600 flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
+                  <Clock className="w-6 h-6" />
+                </div>
+                <p className="text-lg font-semibold text-text">Permiso por horas</p>
+                <p className="text-sm text-text-muted mt-1">
+                  Salida y retorno el mismo día. Ideal para trámites, salud o asuntos personales.
+                </p>
+                <p className="text-xs font-medium text-primary-600 mt-4">
+                  {conteoHoras} tipo(s) disponible(s)
+                </p>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => elegirUnidad('DIAS')}
+                className="group text-left p-5 rounded-2xl border-2 border-border bg-card hover:border-primary-400 hover:bg-primary-50/40 transition-all"
+              >
+                <div className="w-12 h-12 rounded-xl bg-primary-50 text-primary-600 flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
+                  <CalendarDays className="w-6 h-6" />
+                </div>
+                <p className="text-lg font-semibold text-text">Licencia o permiso por días</p>
+                <p className="text-sm text-text-muted mt-1">
+                  Solicitudes que abarcan días completos, con fechas de inicio y fin.
+                </p>
+                <p className="text-xs font-medium text-primary-600 mt-4">
+                  {conteoDias} tipo(s) disponible(s)
+                </p>
+              </button>
+            </div>
+
+            <p className="text-center text-xs text-text-muted">
+              Podrá cambiar esta opción antes de enviar la solicitud.
+            </p>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className={embedded ? 'w-full' : 'max-w-3xl mx-auto space-y-6'}>
       {!embedded && (
@@ -346,22 +454,53 @@ export default function NuevaSolicitud({ embedded = false, onClose }: NuevaSolic
 
       <Card>
         <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl bg-slate-50 border border-border">
+            <div className="flex items-center gap-3">
+              <span className="w-9 h-9 rounded-lg bg-primary-50 text-primary-600 flex items-center justify-center shrink-0">
+                {unidadSeleccionada === 'HORAS' ? (
+                  <Clock className="w-4 h-4" />
+                ) : (
+                  <CalendarDays className="w-4 h-4" />
+                )}
+              </span>
+              <div>
+                <p className="text-xs uppercase tracking-wide text-text-muted">
+                  Tipo de solicitud
+                </p>
+                <p className="text-sm font-semibold text-text">
+                  {unidadSeleccionada === 'HORAS'
+                    ? 'Permiso por horas'
+                    : 'Licencia o permiso por días'}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={cambiarUnidad}
+              className="text-sm font-medium text-primary-600 hover:underline self-start sm:self-auto"
+            >
+              Cambiar a {unidadSeleccionada === 'HORAS' ? 'días' : 'horas'}
+            </button>
+          </div>
+
           <div>
             <Select
               label="Tipo de permiso o licencia"
-              options={tipos.map((t) => ({ value: t.id_tipo, label: t.nombre }))}
+              options={tiposDisponibles.map((t) => ({ value: t.id_tipo, label: t.nombre }))}
               value={idTipo || ''}
               onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
                 const val = e.target.value;
                 setValue('id_tipo', val ? Number(val) : '', { shouldValidate: true });
-                const t = tipos.find((x) => String(x.id_tipo) === String(val));
+                const t = tiposDisponibles.find((x) => String(x.id_tipo) === String(val));
                 setTipoSeleccionado(t || null);
                 setCondicionesSel([]);
               }}
               error={errors.id_tipo}
             />
-            {tipos.length === 0 && (
-              <p className="helper-text">No hay tipos activos. Un administrador debe crearlos en el catálogo.</p>
+            {tiposDisponibles.length === 0 && (
+              <p className="helper-text">
+                No hay tipos activos para esta unidad. Un administrador debe crearlos en el catálogo.
+              </p>
             )}
             {tipoSeleccionado && (
               <div className="mt-3 p-3 bg-slate-50 rounded-xl border border-border space-y-2 text-sm">

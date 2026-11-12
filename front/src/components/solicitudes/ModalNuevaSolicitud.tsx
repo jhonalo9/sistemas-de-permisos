@@ -46,7 +46,7 @@ export default function ModalNuevaSolicitud({ isOpen, onClose }: Props) {
               Nueva solicitud
             </h2>
             <p className="text-sm text-gray-600">
-              Complete los datos de su permiso o licencia.
+              Elija cómo se medirá su solicitud y complete los datos.
             </p>
           </div>
           <button
