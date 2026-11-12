@@ -12,14 +12,17 @@ class SolicitudModel extends Model
     protected $allowedFields = [
         'nro_solicitud','id_servidor','id_tipo','id_jefe_solicitud',
         'id_unidad_solicitud','id_cargo_solicitud','fecha_inicio','fecha_fin',
-        'hora_inicio','hora_fin','cantidad','motivo','estado','token_codigo',
+        'hora_inicio','hora_fin','cantidad','entrega_cargo','motivo','estado','token_codigo',
         'es_urgente','fecha_limite_regularizacion','tiempo_empleado_min',
         'mision_cumplida','id_usuario_visa','fecha_visa','nro_resolucion','fecha_resolucion',
     ];
 
     private const TIPO_COLUMNS = [
         'id_tipo', 'codigo', 'nombre', 'categoria', 'con_goce', 'unidad_medida',
-        'max_por_solicitud', 'max_por_anio', 'requiere_sustento', 'solo_sexo',
+        'max_por_solicitud', 'max_por_anio', 'max_solicitudes_mes',
+        'dias_anticipacion', 'anticipacion_dias_habiles', 'permite_mismo_dia',
+        'max_horas_semana', 'max_horas_dia', 'requiere_entrega_cargo',
+        'autoridad_aprobacion', 'tipo_sustento', 'requiere_sustento', 'solo_sexo',
         'permite_regularizar', 'dias_calendario', 'base_legal',
         'plazo_regularizacion_dias', 'activo',
     ];
@@ -39,8 +42,15 @@ class SolicitudModel extends Model
         $tipo['permite_regularizar']       = (int) ($tipo['permite_regularizar'] ?? 0);
         $tipo['dias_calendario']           = (int) ($tipo['dias_calendario'] ?? 0);
         $tipo['activo']                    = (int) ($tipo['activo'] ?? 0);
+        $tipo['anticipacion_dias_habiles'] = (int) ($tipo['anticipacion_dias_habiles'] ?? 0);
+        $tipo['permite_mismo_dia']         = (int) ($tipo['permite_mismo_dia'] ?? 0);
+        $tipo['requiere_entrega_cargo']    = (int) ($tipo['requiere_entrega_cargo'] ?? 0);
+        $tipo['dias_anticipacion']         = (int) ($tipo['dias_anticipacion'] ?? 0);
+        $tipo['max_solicitudes_mes']       = isset($tipo['max_solicitudes_mes']) && $tipo['max_solicitudes_mes'] !== null ? (int) $tipo['max_solicitudes_mes'] : null;
         $tipo['max_por_solicitud']         = isset($tipo['max_por_solicitud']) && $tipo['max_por_solicitud'] !== null ? (float) $tipo['max_por_solicitud'] : null;
         $tipo['max_por_anio']              = isset($tipo['max_por_anio']) && $tipo['max_por_anio'] !== null ? (float) $tipo['max_por_anio'] : null;
+        $tipo['max_horas_semana']          = isset($tipo['max_horas_semana']) && $tipo['max_horas_semana'] !== null ? (float) $tipo['max_horas_semana'] : null;
+        $tipo['max_horas_dia']             = isset($tipo['max_horas_dia']) && $tipo['max_horas_dia'] !== null ? (float) $tipo['max_horas_dia'] : null;
         $tipo['plazo_regularizacion_dias'] = isset($tipo['plazo_regularizacion_dias']) && $tipo['plazo_regularizacion_dias'] !== null ? (int) $tipo['plazo_regularizacion_dias'] : null;
 
         $row['tipo'] = $tipo;

@@ -11,7 +11,10 @@ class TipoSolicitudModel extends Model
     protected $returnType    = 'array';
     protected $allowedFields = [
         'codigo','nombre','categoria','con_goce','unidad_medida','max_por_solicitud',
-        'max_por_anio','requiere_sustento','solo_sexo','permite_regularizar',
+        'max_por_anio','max_solicitudes_mes','dias_anticipacion',
+        'anticipacion_dias_habiles','permite_mismo_dia','max_horas_semana',
+        'max_horas_dia','requiere_entrega_cargo','autoridad_aprobacion','tipo_sustento',
+        'requiere_sustento','solo_sexo','permite_regularizar',
         'dias_calendario','base_legal','plazo_regularizacion_dias','activo',
     ];
 

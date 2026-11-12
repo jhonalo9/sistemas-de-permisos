@@ -15,6 +15,15 @@ const defaultValues = {
   unidad_medida: 'DIAS',
   max_por_solicitud: '',
   max_por_anio: '',
+  max_solicitudes_mes: '',
+  dias_anticipacion: 0,
+  anticipacion_dias_habiles: true,
+  permite_mismo_dia: true,
+  max_horas_semana: '',
+  max_horas_dia: '',
+  requiere_entrega_cargo: false,
+  autoridad_aprobacion: 'RRHH',
+  tipo_sustento: '',
   requiere_sustento: true,
   permite_regularizar: false,
   dias_calendario: true,
@@ -107,6 +116,15 @@ export default function TiposSolicitud() {
       unidad_medida: tipo.unidad_medida,
       max_por_solicitud: tipo.max_por_solicitud ?? '',
       max_por_anio: tipo.max_por_anio ?? '',
+      max_solicitudes_mes: tipo.max_solicitudes_mes ?? '',
+      dias_anticipacion: tipo.dias_anticipacion ?? 0,
+      anticipacion_dias_habiles: asBool(tipo.anticipacion_dias_habiles),
+      permite_mismo_dia: asBool(tipo.permite_mismo_dia),
+      max_horas_semana: tipo.max_horas_semana ?? '',
+      max_horas_dia: tipo.max_horas_dia ?? '',
+      requiere_entrega_cargo: asBool(tipo.requiere_entrega_cargo),
+      autoridad_aprobacion: tipo.autoridad_aprobacion || 'RRHH',
+      tipo_sustento: tipo.tipo_sustento ?? '',
       requiere_sustento: asBool(tipo.requiere_sustento),
       permite_regularizar: asBool(tipo.permite_regularizar),
       dias_calendario: asBool(tipo.dias_calendario),
@@ -192,6 +210,22 @@ export default function TiposSolicitud() {
             />
             <Input type="number" label="Tope por solicitud" {...register('max_por_solicitud')} error={errors.max_por_solicitud} />
             <Input type="number" label="Tope anual" {...register('max_por_anio')} error={errors.max_por_anio} />
+            <Input type="number" label="Máx. solicitudes por mes" {...register('max_solicitudes_mes')} error={errors.max_solicitudes_mes} />
+            <Input type="number" label="Días de anticipación" {...register('dias_anticipacion')} error={errors.dias_anticipacion} />
+            <Input type="number" label="Máx. horas por semana" {...register('max_horas_semana')} error={errors.max_horas_semana} />
+            <Input type="number" label="Máx. horas por día" {...register('max_horas_dia')} error={errors.max_horas_dia} />
+            <Select
+              label="Autoridad de aprobación"
+              options={[
+                { value: 'RRHH', label: 'RRHH' },
+                { value: 'GERENCIA', label: 'Gerencia Municipal' },
+                { value: 'TITULAR', label: 'Titular del pliego' },
+              ]}
+              value={watch('autoridad_aprobacion') || 'RRHH'}
+              onChange={(e) => setValue('autoridad_aprobacion', e.target.value)}
+              error={errors.autoridad_aprobacion}
+            />
+            <Input label="Tipo de sustento" {...register('tipo_sustento')} error={errors.tipo_sustento} />
             <Input label="Base legal" {...register('base_legal')} error={errors.base_legal} />
             <Input
               type="number"
@@ -206,6 +240,9 @@ export default function TiposSolicitud() {
                 { name: 'requiere_sustento', label: 'Requiere sustento' },
                 { name: 'permite_regularizar', label: 'Permite regularizar' },
                 { name: 'dias_calendario', label: 'Días calendario' },
+                { name: 'anticipacion_dias_habiles', label: 'Anticipación en días hábiles' },
+                { name: 'permite_mismo_dia', label: 'Permite solicitud el mismo día' },
+                { name: 'requiere_entrega_cargo', label: 'Requiere entrega de cargo' },
                 { name: 'activo', label: 'Activo' },
               ].map((f) => (
                 <label key={f.name} className="flex items-center gap-2 text-sm text-text cursor-pointer">

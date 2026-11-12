@@ -287,7 +287,9 @@ class SolicitudesController extends BaseApiController
         }
 
         try {
+            $merged['cantidad'] = $cantidad;
             $svc->validarCruceHorario((int) $s['id_servidor'], $merged, $id);
+            $svc->validarReglasTipo((int) $s['id_servidor'], $merged, $id);
         } catch (\RuntimeException $e) {
             return ApiResponse::error($e->getMessage(), 422);
         }
@@ -303,6 +305,7 @@ class SolicitudesController extends BaseApiController
                 'hora_inicio'  => $merged['hora_inicio'] ?? null,
                 'hora_fin'     => $merged['hora_fin'] ?? null,
                 'cantidad'     => $cantidad,
+                'entrega_cargo' => ! empty($merged['entrega_cargo']) ? 1 : 0,
                 'estado'       => 'PENDIENTE',
             ]);
             $svc->insertarAdjuntos($id, $lista);

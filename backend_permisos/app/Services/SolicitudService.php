@@ -31,6 +31,7 @@ class SolicitudService
                     throw new \RuntimeException('El servidor no tiene jefe inmediato asignado.');
                 }
                 $this->validarCruceHorario($idServidor, $datos);
+                $this->validarReglasTipo($idServidor, $datos);
                 $snapshots = $this->snapshots($sv);
             }
 
@@ -44,6 +45,7 @@ class SolicitudService
                 'hora_inicio'   => $datos['hora_inicio'] ?? null,
                 'hora_fin'      => $datos['hora_fin'] ?? null,
                 'cantidad'      => $datos['cantidad'] ?? 0,
+                'entrega_cargo' => ! empty($datos['entrega_cargo']) ? 1 : 0,
                 'motivo'        => $datos['motivo'] ?? null,
                 'estado'        => $estadoInicial,
             ], $snapshots), true);
@@ -78,7 +80,7 @@ class SolicitudService
         $db->transBegin();
         try {
             $update = [];
-            foreach (['id_tipo', 'fecha_inicio', 'fecha_fin', 'hora_inicio', 'hora_fin', 'motivo', 'cantidad'] as $campo) {
+            foreach (['id_tipo', 'fecha_inicio', 'fecha_fin', 'hora_inicio', 'hora_fin', 'motivo', 'cantidad', 'entrega_cargo'] as $campo) {
                 if (array_key_exists($campo, $datos)) {
                     $valor = $datos[$campo];
                     $update[$campo] = ($valor === '' || $valor === null) ? null : $valor;
@@ -136,6 +138,7 @@ class SolicitudService
         }
 
         $this->validarCruceHorario((int) $s['id_servidor'], $s, $idSolicitud);
+        $this->validarReglasTipo((int) $s['id_servidor'], $s, $idSolicitud);
 
         $db = db_connect();
         $db->transBegin();
@@ -256,6 +259,178 @@ class SolicitudService
                 . $solicitud['nro_solicitud'] . $detalle . '.'
             );
         }
+    }
+
+    public function validarReglasTipo(int $idServidor, array $datos, ?int $excluirId = null): void
+    {
+        $idTipo = (int) ($datos['id_tipo'] ?? 0);
+        if ($idTipo <= 0) return;
+
+        $tipo = db_connect()->table('permiso_tipo_solicitud')
+            ->where('id_tipo', $idTipo)
+            ->get()->getRowArray();
+        if (! $tipo) return;
+
+        $fechaInicio = $datos['fecha_inicio'] ?? null;
+        $cantidad    = (float) ($datos['cantidad'] ?? 0);
+        if (empty($fechaInicio) || $cantidad <= 0) return;
+
+        $unidad = $tipo['unidad_medida'] ?? 'DIAS';
+
+        if ($tipo['max_por_solicitud'] !== null && $cantidad > (float) $tipo['max_por_solicitud']) {
+            throw new \RuntimeException(
+                'La cantidad solicitada supera el máximo permitido por solicitud: '
+                . $this->numero($tipo['max_por_solicitud']) . ' ' . strtolower($unidad) . '.'
+            );
+        }
+
+        $this->validarAnticipacion($tipo, (string) $fechaInicio);
+
+        if ($tipo['max_solicitudes_mes'] !== null) {
+            $desde = date('Y-m-01', strtotime((string) $fechaInicio));
+            $hasta = date('Y-m-t', strtotime((string) $fechaInicio));
+            $usadas = $this->baseReglas($idServidor, $idTipo, $excluirId)
+                ->where('s.fecha_inicio >=', $desde)
+                ->where('s.fecha_inicio <=', $hasta)
+                ->countAllResults();
+
+            if ($usadas >= (int) $tipo['max_solicitudes_mes']) {
+                throw new \RuntimeException(
+                    'Ya alcanzó el máximo de ' . (int) $tipo['max_solicitudes_mes']
+                    . ' solicitudes de este tipo en el mes.'
+                );
+            }
+        }
+
+        if ($unidad === 'HORAS' && $tipo['max_horas_dia'] !== null) {
+            $usadas = $this->sumarCantidad(
+                $this->baseReglas($idServidor, $idTipo, $excluirId)
+                    ->where('s.fecha_inicio', (string) $fechaInicio)
+            );
+            if ($usadas + $cantidad > (float) $tipo['max_horas_dia']) {
+                throw new \RuntimeException(
+                    'La suma de horas para ese día supera el máximo permitido: '
+                    . $this->numero($tipo['max_horas_dia']) . ' horas.'
+                );
+            }
+        }
+
+        if ($unidad === 'HORAS' && $tipo['max_horas_semana'] !== null) {
+            $inicioSemana = date('Y-m-d', strtotime('monday this week', strtotime((string) $fechaInicio)));
+            $finSemana    = date('Y-m-d', strtotime('sunday this week', strtotime((string) $fechaInicio)));
+            $usadas = $this->sumarCantidad(
+                $this->baseReglas($idServidor, $idTipo, $excluirId)
+                    ->where('s.fecha_inicio >=', $inicioSemana)
+                    ->where('s.fecha_inicio <=', $finSemana)
+            );
+            if ($usadas + $cantidad > (float) $tipo['max_horas_semana']) {
+                throw new \RuntimeException(
+                    'La suma de horas para esa semana supera el máximo permitido: '
+                    . $this->numero($tipo['max_horas_semana']) . ' horas.'
+                );
+            }
+        }
+
+        if ($tipo['max_por_anio'] !== null) {
+            $anio = date('Y', strtotime((string) $fechaInicio));
+            $usadas = $this->sumarCantidad(
+                $this->baseReglas($idServidor, $idTipo, $excluirId)
+                    ->where('s.fecha_inicio >=', $anio . '-01-01')
+                    ->where('s.fecha_inicio <=', $anio . '-12-31')
+            );
+            if ($usadas + $cantidad > (float) $tipo['max_por_anio']) {
+                throw new \RuntimeException(
+                    'La cantidad acumulada del año supera el máximo permitido: '
+                    . $this->numero($tipo['max_por_anio']) . ' ' . strtolower($unidad) . '.'
+                );
+            }
+        }
+
+        if (! empty($tipo['requiere_entrega_cargo'])
+            && ($tipo['categoria'] ?? '') === 'LICENCIA'
+            && $unidad === 'DIAS'
+            && $cantidad >= 20
+            && empty($datos['entrega_cargo'])
+        ) {
+            throw new \RuntimeException(
+                'Para licencias de 20 días o más debe declarar la entrega de cargo.'
+            );
+        }
+    }
+
+    private function validarAnticipacion(array $tipo, string $fechaInicio): void
+    {
+        $dias = (int) ($tipo['dias_anticipacion'] ?? 0);
+        if ($dias <= 0 || $fechaInicio === '') return;
+
+        $hoy = date('Y-m-d');
+        if ($fechaInicio < $hoy) return;
+
+        $tipoDias = ! empty($tipo['anticipacion_dias_habiles']) ? 'hábil(es)' : 'calendario';
+
+        if ($fechaInicio === $hoy) {
+            if (empty($tipo['permite_mismo_dia'])) {
+                throw new \RuntimeException(
+                    'Este tipo de solicitud requiere al menos ' . $dias . ' día(s) ' . $tipoDias . ' de anticipación.'
+                );
+            }
+            return;
+        }
+
+        $disponibles = ! empty($tipo['anticipacion_dias_habiles'])
+            ? $this->diasHabilesEntre($hoy, $fechaInicio)
+            : (int) floor((strtotime($fechaInicio) - strtotime($hoy)) / 86400);
+
+        if ($disponibles < $dias) {
+            throw new \RuntimeException(
+                'Este tipo de solicitud requiere al menos ' . $dias
+                . ' día(s) ' . $tipoDias . ' de anticipación.'
+            );
+        }
+    }
+
+    private function diasHabilesEntre(string $desde, string $hasta): int
+    {
+        $feriados = array_column(
+            db_connect()->table('permiso_feriado')->get()->getResultArray(),
+            'fecha'
+        );
+        $total = 0;
+        for ($t = strtotime($desde . ' +1 day'); $t <= strtotime($hasta); $t += 86400) {
+            $dow = (int) date('N', $t);
+            if ($dow >= 6) continue;
+            if (in_array(date('Y-m-d', $t), $feriados, true)) continue;
+            $total++;
+        }
+        return $total;
+    }
+
+    private function baseReglas(int $idServidor, int $idTipo, ?int $excluirId)
+    {
+        $b = db_connect()->table('permiso_solicitud_papeleta s')
+            ->where('s.id_servidor', $idServidor)
+            ->where('s.id_tipo', $idTipo)
+            ->whereIn('s.estado', [
+                'PENDIENTE', 'OBSERVADA', 'APROBADA_JEFE', 'APROBADA_RRHH',
+                'REGULARIZAR', 'EN_CURSO', 'EJECUTADA',
+            ]);
+
+        if ($excluirId !== null) {
+            $b->where('s.id_solicitud !=', $excluirId);
+        }
+
+        return $b;
+    }
+
+    private function sumarCantidad($builder): float
+    {
+        $row = $builder->selectSum('s.cantidad')->get()->getRowArray();
+        return (float) ($row['cantidad'] ?? 0);
+    }
+
+    private function numero($valor): string
+    {
+        return rtrim(rtrim(number_format((float) $valor, 2, '.', ''), '0'), '.');
     }
 
     private function minutos(?string $hora): ?int

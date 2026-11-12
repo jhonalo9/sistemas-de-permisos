@@ -92,6 +92,7 @@ class RrhhController extends BaseApiController
         $svc = new SolicitudService();
         try {
             $svc->validarCruceHorario((int) $s['id_servidor'], $s, $id);
+            $svc->validarReglasTipo((int) $s['id_servidor'], $s, $id);
         } catch (\RuntimeException $e) {
             return ApiResponse::error($e->getMessage(), 422);
         }

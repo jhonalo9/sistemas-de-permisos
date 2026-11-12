@@ -16,6 +16,7 @@ const schema = z
     hora_inicio: z.string().optional(),
     hora_fin: z.string().optional(),
     motivo: z.string().min(5, 'El motivo debe tener al menos 5 caracteres'),
+    entrega_cargo: z.boolean().optional(),
   })
   .superRefine((data, ctx) => {
     // fecha_fin se exige solo si viene vacía y no es permiso de un día (se completa en submit)
@@ -72,6 +73,7 @@ export default function NuevaSolicitud({ embedded = false, onClose }: NuevaSolic
       hora_inicio: '',
       hora_fin: '',
       motivo: '',
+      entrega_cargo: false,
     },
   });
 
@@ -80,6 +82,7 @@ export default function NuevaSolicitud({ embedded = false, onClose }: NuevaSolic
   const horaInicio = watch('hora_inicio');
   const horaFin = watch('hora_fin');
   const idTipo = watch('id_tipo');
+  const entregaCargo = watch('entrega_cargo');
 
   React.useEffect(() => {
     (async () => {
@@ -116,6 +119,7 @@ export default function NuevaSolicitud({ embedded = false, onClose }: NuevaSolic
             hora_inicio: (sol.hora_inicio || '').slice(0, 5),
             hora_fin: (sol.hora_fin || '').slice(0, 5),
             motivo: sol.motivo || '',
+            entrega_cargo: asBool(sol.entrega_cargo),
           });
         } else {
           setTipoSeleccionado(null);
@@ -129,6 +133,7 @@ export default function NuevaSolicitud({ embedded = false, onClose }: NuevaSolic
             hora_inicio: '',
             hora_fin: '',
             motivo: '',
+            entrega_cargo: false,
           });
         }
       } catch (e: any) {
@@ -157,11 +162,17 @@ export default function NuevaSolicitud({ embedded = false, onClose }: NuevaSolic
 
   const requiereSustento = asBool(tipoSeleccionado?.requiere_sustento);
   const tieneSustento = archivos.length > 0 || adjuntosExistentes.length > 0;
+  const requiereEntregaCargo =
+    tipoSeleccionado?.categoria === 'LICENCIA' &&
+    tipoSeleccionado?.unidad_medida === 'DIAS' &&
+    asBool(tipoSeleccionado?.requiere_entrega_cargo) &&
+    Number(cantidad) >= 20;
   const puedeEnviar =
     !submitting &&
     !!idTipo &&
     !!fechaInicio &&
-    (!requiereSustento || tieneSustento);
+    (!requiereSustento || tieneSustento) &&
+    (!requiereEntregaCargo || !!entregaCargo);
 
   const construirFormData = (datos: any, borrador: boolean): FormData => {
     const fechaFinFinal =
@@ -176,6 +187,7 @@ export default function NuevaSolicitud({ embedded = false, onClose }: NuevaSolic
     if (datos.hora_inicio) formData.append('hora_inicio', datos.hora_inicio);
     if (datos.hora_fin) formData.append('hora_fin', datos.hora_fin);
     if (datos.motivo) formData.append('motivo', datos.motivo);
+    formData.append('entrega_cargo', datos.entrega_cargo ? '1' : '0');
     if (borrador) formData.append('borrador', '1');
     archivos.forEach((f) => formData.append('adjuntos', f));
     return formData;
@@ -320,6 +332,27 @@ export default function NuevaSolicitud({ embedded = false, onClose }: NuevaSolic
                     <span className="font-medium text-xs text-right">{tipoSeleccionado.base_legal}</span>
                   </div>
                 )}
+                {Number(tipoSeleccionado.dias_anticipacion) > 0 && (
+                  <div className="flex justify-between gap-4">
+                    <span className="text-text-muted shrink-0">Anticipación:</span>
+                    <span className="font-medium text-right">
+                      {tipoSeleccionado.dias_anticipacion}{' '}
+                      {asBool(tipoSeleccionado.anticipacion_dias_habiles) ? 'día(s) hábil(es)' : 'día(s) calendario'}
+                    </span>
+                  </div>
+                )}
+                {tipoSeleccionado.max_solicitudes_mes != null && (
+                  <div className="flex justify-between gap-4">
+                    <span className="text-text-muted shrink-0">Máx. por mes:</span>
+                    <span className="font-medium text-right">{tipoSeleccionado.max_solicitudes_mes} solicitud(es)</span>
+                  </div>
+                )}
+                {tipoSeleccionado.tipo_sustento && (
+                  <div className="flex justify-between gap-4">
+                    <span className="text-text-muted shrink-0">Sustento:</span>
+                    <span className="font-medium text-xs text-right">{tipoSeleccionado.tipo_sustento}</span>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -413,6 +446,20 @@ export default function NuevaSolicitud({ embedded = false, onClose }: NuevaSolic
           <DropZone onFilesChange={setArchivos} accept=".pdf,.jpg,.jpeg,.png" className="mb-2" />
           {requiereSustento && !tieneSustento && (
             <p className="error-text">Debe adjuntar al menos un documento de sustento.</p>
+          )}
+
+          {requiereEntregaCargo && (
+            <label className="flex items-start gap-3 p-4 bg-slate-50 rounded-xl border border-border cursor-pointer">
+              <input
+                type="checkbox"
+                {...register('entrega_cargo')}
+                className="mt-0.5 rounded border-border text-primary-600 focus:ring-primary-500"
+              />
+              <span className="text-sm text-text">
+                Declaro haber realizado la entrega de cargo a mi jefe inmediato, conforme al
+                artículo 32 del Reglamento Interno.
+              </span>
+            </label>
           )}
 
           <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-3 pt-4 border-t border-border">
