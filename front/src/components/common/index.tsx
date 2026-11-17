@@ -191,13 +191,14 @@ interface ProgressBarProps {
   valor: number;
   maximo: number;
   className?: string;
+  color?: string;
 }
 
-export function ProgressBar({ valor, maximo, className = '' }: ProgressBarProps) {
+export function ProgressBar({ valor, maximo, className = '', color = 'bg-primary' }: ProgressBarProps) {
   const porcentaje = maximo > 0 ? Math.min((valor / maximo) * 100, 100) : 0;
   return (
     <div className={`w-full bg-gray-200 rounded-full h-3 ${className}`}>
-      <div className={`bg-primary h-3 rounded-full transition-all duration-500`} style={{ width: `${porcentaje}%` }} />
+      <div className={`${color} h-full rounded-full transition-all duration-500`} style={{ width: `${porcentaje}%` }} />
     </div>
   );
 }

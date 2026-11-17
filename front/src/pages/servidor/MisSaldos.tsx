@@ -188,7 +188,18 @@ export default function MisSaldos() {
                     </span>
                   </div>
 
-                  <ProgressBar valor={usadas} maximo={limite} className="h-3 mb-3" />
+                  <ProgressBar
+                    valor={usadas}
+                    maximo={limite}
+                    className="h-3 mb-3"
+                    color={
+                      alcanzado
+                        ? 'bg-red-500'
+                        : limite > 0 && usadas / limite >= 0.75
+                          ? 'bg-amber-500'
+                          : 'bg-emerald-500'
+                    }
+                  />
 
                   <div className="grid grid-cols-3 gap-4 text-sm mb-3">
                     <div>

@@ -4,7 +4,7 @@ import { apiClient, descargarAdjunto } from '@/services/api';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Button, Input, Select, TextArea, DropZone, Card, useToast } from '@/components/common';
+import { Button, Input, Select, TextArea, DropZone, Card, ProgressBar, useToast } from '@/components/common';
 import { calcularDiasEntre, categoriaLabel, unidadLabel, asBool, asNum } from '@/utils/format';
 import { AlertTriangle, CalendarDays, Clock, FileText } from 'lucide-react';
 
@@ -212,6 +212,16 @@ export default function NuevaSolicitud({ embedded = false, onClose }: NuevaSolic
   }, [periodoUso]);
 
   const usoSeleccionado = usoMensual.find((u) => asNum(u.id_tipo) === asNum(idTipo));
+  const limiteUso = usoSeleccionado?.max_solicitudes_mes ?? null;
+  const porcentajeUso =
+    limiteUso !== null && Number(limiteUso) > 0
+      ? Math.min(100, (Number(usoSeleccionado?.usadas || 0) / Number(limiteUso)) * 100)
+      : 0;
+  const colorUso = usoSeleccionado?.alcanzado
+    ? 'bg-red-500'
+    : porcentajeUso >= 75
+      ? 'bg-amber-500'
+      : 'bg-emerald-500';
 
   const fechaFinEfectiva = React.useMemo(() => {
     if (!fechaFin) return fechaFin;
@@ -539,34 +549,60 @@ export default function NuevaSolicitud({ embedded = false, onClose }: NuevaSolic
             />
             {tipoSeleccionado && usoSeleccionado && (
               <div
-                className={`mt-2 rounded-xl border p-3 text-sm ${
+                className={`mt-2 rounded-xl border p-4 ${
                   usoSeleccionado.alcanzado
                     ? 'border-red-200 bg-red-50'
                     : 'border-border bg-slate-50'
                 }`}
               >
-                {usoSeleccionado.max_solicitudes_mes !== null ? (
-                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-text">
-                    <span>
-                      Tope mensual: <strong>{usoSeleccionado.max_solicitudes_mes}</strong>
+                <div className="flex items-center justify-between gap-3 mb-2">
+                  <p className="text-sm font-semibold text-text">Uso mensual</p>
+                  {limiteUso !== null ? (
+                    <span className={`text-sm font-bold ${usoSeleccionado.alcanzado ? 'text-red-600' : 'text-text'}`}>
+                      {usoSeleccionado.usadas} / {limiteUso}
                     </span>
-                    <span>
-                      Usadas: <strong>{usoSeleccionado.usadas}</strong>
-                    </span>
-                    <span>
-                      Disponibles: <strong>{usoSeleccionado.disponibles ?? 0}</strong>
-                    </span>
-                  </div>
+                  ) : (
+                    <span className="text-xs font-medium text-text-muted">Sin tope mensual</span>
+                  )}
+                </div>
+
+                {limiteUso !== null ? (
+                  <>
+                    <ProgressBar
+                      valor={Number(usoSeleccionado.usadas || 0)}
+                      maximo={Number(limiteUso)}
+                      className="h-3"
+                      color={colorUso}
+                    />
+                    <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+                      <div className="rounded-lg bg-white/70 border border-border/60 p-2">
+                        <p className="text-xs text-text-muted uppercase">Tope</p>
+                        <p className="text-base font-bold text-text">{limiteUso}</p>
+                      </div>
+                      <div className="rounded-lg bg-white/70 border border-border/60 p-2">
+                        <p className="text-xs text-text-muted uppercase">Usadas</p>
+                        <p className="text-base font-bold text-text">{usoSeleccionado.usadas}</p>
+                      </div>
+                      <div className="rounded-lg bg-white/70 border border-border/60 p-2">
+                        <p className="text-xs text-text-muted uppercase">Disponibles</p>
+                        <p className={`text-base font-bold ${usoSeleccionado.alcanzado ? 'text-red-600' : 'text-text'}`}>
+                          {usoSeleccionado.disponibles ?? 0}
+                        </p>
+                      </div>
+                    </div>
+                  </>
                 ) : (
-                  <p className="text-text">
-                    Sin tope mensual · Usadas este mes: <strong>{usoSeleccionado.usadas}</strong>
-                  </p>
+                  <div className="flex items-center justify-between rounded-lg bg-white/70 border border-border/60 px-3 py-2">
+                    <span className="text-sm text-text-muted">Solicitudes usadas este mes</span>
+                    <span className="text-sm font-bold text-text">{usoSeleccionado.usadas}</span>
+                  </div>
                 )}
-                <p className="mt-1 text-xs text-text-muted">
+
+                <p className="mt-2 text-xs text-text-muted">
                   El conteo incluye solicitudes pendientes y aprobadas.
                 </p>
                 {usoSeleccionado.alcanzado && (
-                  <p className="mt-1 text-xs font-medium text-red-700">
+                  <p className="mt-2 text-sm font-semibold text-red-700">
                     Alcanzaste el tope mensual de este tipo.
                   </p>
                 )}
@@ -577,7 +613,7 @@ export default function NuevaSolicitud({ embedded = false, onClose }: NuevaSolic
                 No hay tipos activos para esta unidad. Un administrador debe crearlos en el catálogo.
               </p>
             )}
-            {tipoSeleccionado && (
+            {/*{tipoSeleccionado && (
               <div className="mt-3 p-3 bg-slate-50 rounded-xl border border-border space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-text-muted">Categoría:</span>
@@ -627,7 +663,7 @@ export default function NuevaSolicitud({ embedded = false, onClose }: NuevaSolic
                   </div>
                 )}
               </div>
-            )}
+            )}*/}
           </div>
 
           {condicionesDisponibles.length > 0 && (
