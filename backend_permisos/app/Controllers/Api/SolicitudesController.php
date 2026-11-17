@@ -244,6 +244,30 @@ class SolicitudesController extends BaseApiController
         }
     }
 
+    public function papeletaPdf(int $id)
+    {
+        $s = (new SolicitudModel())->detalleCompleto($id);
+        if (! $s) return ApiResponse::error('Solicitud no encontrada.', 404);
+        if (! $this->puedeVer($s)) return ApiResponse::error('No autorizado.', 403);
+
+        $unidad = $s['tipo']['unidad_medida'] ?? '';
+        $codigo = $s['tipo']['codigo'] ?? '';
+        if ($unidad !== 'HORAS' && $codigo !== 'PER_COMISION_SERVICIO') {
+            return ApiResponse::error('La papeleta solo aplica a permisos por horas o comisión de servicio.', 422);
+        }
+        if (empty($s['token_codigo'])) {
+            return ApiResponse::error('La papeleta aún no fue generada.', 422);
+        }
+
+        $pdf = (new \App\Libraries\PapeletaPdf())->generar($id);
+        if (! $pdf) return ApiResponse::error('No se pudo generar la papeleta.', 500);
+
+        return service('response')
+            ->setHeader('Content-Type', 'application/pdf')
+            ->setHeader('Content-Disposition', 'inline; filename="papeleta-' . $id . '.pdf"')
+            ->setBody($pdf);
+    }
+
     public function codigoBarras(int $id)
     {
         $s = (new SolicitudModel())->detalleCompleto($id);

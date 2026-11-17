@@ -39,6 +39,8 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], static function ($
 
         $r->get('saldos/mios', 'SaldosController::mios', ['filter' => 'role:SERVIDOR,ADMIN']);
 
+        $r->get('papeletas/(:num)/pdf', 'SolicitudesController::papeletaPdf/$1');
+
         $r->group('regularizaciones', ['filter' => 'role:SERVIDOR,RRHH,ADMIN'], static function ($r) {
             $r->get('',           'SolicitudesController::regularizacionesPendientes');
             $r->get('historial',  'SolicitudesController::regularizacionesHistorial');

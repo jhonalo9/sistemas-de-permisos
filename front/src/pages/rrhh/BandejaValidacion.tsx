@@ -64,7 +64,7 @@ export default function BandejaValidacion() {
     return true;
   });
 
-  const estados = ['APROBADA_JEFE', 'APROBADA_RRHH', 'OBSERVADA', 'RECHAZADA'];
+  const estados = ['APROBADA_JEFE', 'APROBADA', 'APROBADA_RRHH', 'OBSERVADA', 'RECHAZADA'];
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -181,7 +181,15 @@ export default function BandejaValidacion() {
                     )}
                   </td>
                   <td className="px-4 py-3">
-                    {s.estado === 'APROBADA_RRHH' ? (
+                    {s.estado === 'APROBADA' && s.unidad_medida === 'HORAS' ? (
+                      <Button
+                        variant="primary"
+                        className="w-full"
+                        onClick={() => navigate(`/rrhh/papeleta/${s.id_solicitud}`)}
+                      >
+                        Ver papeleta
+                      </Button>
+                    ) : s.estado === 'APROBADA_RRHH' ? (
                       s.unidad_medida === 'HORAS' ? (
                         <Button
                           variant="primary"

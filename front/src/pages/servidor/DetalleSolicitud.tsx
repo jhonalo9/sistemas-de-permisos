@@ -1,6 +1,6 @@
 import React, { useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { apiClient, obtenerCodigoBarras } from '@/services/api';
+import { apiClient, obtenerCodigoBarras, abrirPapeletaPdf } from '@/services/api';
 import { Button, Badge, Card, ConfidentialBadge, Input, TextArea, TimelineItem, useToast } from '@/components/common';
 import VistaPreviaAdjunto from '@/components/adjuntos/VistaPreviaAdjunto';
 import { formatearFecha, formatearHora, categoriaLabel, acortarNombreArchivo } from '@/utils/format';
@@ -275,6 +275,16 @@ export default function DetalleSolicitud() {
                       </Button>
                       <Button variant="primary" onClick={abrirCodigoBarras}>
                         Ver código de barras
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() =>
+                          abrirPapeletaPdf(solicitud.id_solicitud, 'general').catch((e: any) =>
+                            toast.error('No se pudo abrir la papeleta', e?.mensaje || 'Error')
+                          )
+                        }
+                      >
+                        Ver papeleta
                       </Button>
                     </div>
                   </div>

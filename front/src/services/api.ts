@@ -187,13 +187,20 @@ export async function obtenerCodigoBarras(idSolicitud: number | string): Promise
   return URL.createObjectURL(blob);
 }
 
-export async function abrirPapeletaPdf(idSolicitud: number | string): Promise<void> {
+export async function abrirPapeletaPdf(
+  idSolicitud: number | string,
+  origen: 'rrhh' | 'general' = 'rrhh'
+): Promise<void> {
   const ventana = window.open('', '_blank');
   const token = await getToken();
   const headers: Record<string, string> = {};
   if (token) headers['Authorization'] = `Bearer ${token}`;
 
-  const response = await fetch(`${API_BASE}/rrhh/${idSolicitud}/papeleta.pdf`, { headers });
+  const ruta = origen === 'general'
+    ? `${API_BASE}/papeletas/${idSolicitud}/pdf`
+    : `${API_BASE}/rrhh/${idSolicitud}/papeleta.pdf`;
+
+  const response = await fetch(ruta, { headers });
   if (!response.ok) {
     ventana?.close();
     let mensaje = `Error HTTP ${response.status}`;

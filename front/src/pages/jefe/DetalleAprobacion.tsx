@@ -1,6 +1,6 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { apiClient } from '@/services/api';
+import { apiClient, abrirPapeletaPdf } from '@/services/api';
 import { Button, Badge, Card, ConfidentialBadge, useToast } from '@/components/common';
 import VistaPreviaAdjunto from '@/components/adjuntos/VistaPreviaAdjunto';
 import ModalMotivo from '@/components/decisiones/ModalMotivo';
@@ -16,19 +16,19 @@ export default function DetalleAprobacion() {
   const [adjuntoVista, setAdjuntoVista] = React.useState<any | null>(null);
   const [motivoModal, setMotivoModal] = React.useState<'observar' | 'rechazar' | null>(null);
 
-  React.useEffect(() => {
-    const cargarDetalle = async (idSolicitud: number) => {
-      try {
-        const res = await apiClient<any>(`/aprobaciones/${idSolicitud}`);
-        setSolicitud(res.data?.solicitud || null);
-        setEquipo(res.data?.equipo_ausente || []);
-      } catch (e: any) {
-        toast.error('Error al cargar detalle', e.mensaje);
-      }
-    };
+  const cargarDetalle = React.useCallback(async (idSolicitud: number) => {
+    try {
+      const res = await apiClient<any>(`/aprobaciones/${idSolicitud}`);
+      setSolicitud(res.data?.solicitud || null);
+      setEquipo(res.data?.equipo_ausente || []);
+    } catch (e: any) {
+      toast.error('Error al cargar detalle', e.mensaje);
+    }
+  }, [toast]);
 
+  React.useEffect(() => {
     if (id) cargarDetalle(Number(id));
-  }, [id]);
+  }, [id, cargarDetalle]);
 
   async function decidir(accion: 'aprobar' | 'observar' | 'rechazar', comentario?: string) {
     try {
@@ -41,6 +41,12 @@ export default function DetalleAprobacion() {
           ? (res as any).mensaje || 'Solicitud aprobada.'
           : `Solicitud ${accion === 'observar' ? 'observada' : 'rechazada'}.`;
       toast.success('Decisión registrada', mensaje);
+
+      if (accion === 'aprobar' && (res as any).flujo === 'JEFE') {
+        await cargarDetalle(Number(id));
+        return;
+      }
+
       navigate('/jefe/aprobaciones');
     } catch (e: any) {
       toast.error('Error al registrar decisión', e.mensaje);
@@ -259,9 +265,25 @@ export default function DetalleAprobacion() {
                 </Button>
               </div>
             ) : (
-              <p className="text-sm text-gray-600">
-                Esta solicitud ya fue atendida. Estado actual: <strong>{solicitud.estado}</strong>.
-              </p>
+              <div className="space-y-3">
+                <p className="text-sm text-gray-600">
+                  Esta solicitud ya fue atendida. Estado actual: <strong>{solicitud.estado}</strong>.
+                </p>
+                {esPermisoHoras && solicitud.token_codigo && (
+                  <Button
+                    variant="primary"
+                    className="w-full"
+                    onClick={() =>
+                      abrirPapeletaPdf(solicitud.id_solicitud, 'general').catch((e: any) =>
+                        toast.error('No se pudo abrir la papeleta', e?.mensaje || 'Error')
+                      )
+                    }
+                  >
+                    <FileText className="w-4 h-4 mr-2" />
+                    Ver papeleta
+                  </Button>
+                )}
+              </div>
             )}
           </Card>
 
