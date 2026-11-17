@@ -69,12 +69,41 @@ class SaldoModel extends Model
 
         $tipos = $this->db->table('permiso_tipo_solicitud')
             ->select('id_tipo, codigo, nombre, categoria, unidad_medida,
-                      max_solicitudes_mes, max_por_solicitud, max_horas_dia, max_horas_semana')
+                      max_solicitudes_mes, max_por_solicitud, max_horas_dia, max_horas_semana,
+                      max_por_anio')
             ->where('activo', 1)
             ->where('codigo !=', 'PER_EMERGENCIA')
             ->orderBy('categoria')
             ->orderBy('nombre')
             ->get()->getResultArray();
+
+        $saldosAnuales = $this->db->table('permiso_saldo_servidor')
+            ->select('id_tipo, asignado, usado')
+            ->where('id_servidor', $idServidor)
+            ->where('anio', $anio)
+            ->get()->getResultArray();
+
+        $saldoPorTipo = [];
+        foreach ($saldosAnuales as $saldo) {
+            $saldoPorTipo[(int) $saldo['id_tipo']] = [
+                'asignado' => (float) $saldo['asignado'],
+                'usado'    => (float) $saldo['usado'],
+            ];
+        }
+
+        $consumoAnual = $this->db->table('permiso_solicitud_papeleta')
+            ->select('id_tipo, SUM(cantidad) AS cantidad')
+            ->where('id_servidor', $idServidor)
+            ->where('fecha_inicio >=', $anio . '-01-01')
+            ->where('fecha_inicio <=', $anio . '-12-31')
+            ->whereIn('estado', self::ESTADOS_CONSUMIDOS)
+            ->groupBy('id_tipo')
+            ->get()->getResultArray();
+
+        $consumoPorTipo = [];
+        foreach ($consumoAnual as $consumo) {
+            $consumoPorTipo[(int) $consumo['id_tipo']] = (float) $consumo['cantidad'];
+        }
 
         $movimientos = $this->db->table('permiso_solicitud_papeleta')
             ->select('id_tipo, estado, COUNT(*) AS total, SUM(cantidad) AS cantidad')
@@ -115,6 +144,23 @@ class SaldoModel extends Model
             $tipo['alcanzado']          = $limite !== null && $datos['usadas'] >= $limite;
             $tipo['cantidad_usada']     = round($datos['cantidad'], 2);
             $tipo['por_estado']         = $datos['estados'];
+
+            $topeAnual = $tipo['max_por_anio'] !== null
+                ? (float) $tipo['max_por_anio']
+                : null;
+            $saldoAnual = $saldoPorTipo[$idTipo] ?? null;
+            $asignadoAnual = $saldoAnual !== null ? $saldoAnual['asignado'] : $topeAnual;
+            $usadoAnual = $saldoAnual !== null
+                ? $saldoAnual['usado']
+                : ($consumoPorTipo[$idTipo] ?? 0.0);
+
+            $tipo['max_por_anio']       = $topeAnual;
+            $tipo['asignado_anual']     = $asignadoAnual;
+            $tipo['usado_anual']        = round($usadoAnual, 2);
+            $tipo['disponible_anual']   = $asignadoAnual === null
+                ? null
+                : round($asignadoAnual - $usadoAnual, 2);
+            $tipo['alcanzado_anual']    = $asignadoAnual !== null && $usadoAnual >= $asignadoAnual;
         }
 
         return $tipos;

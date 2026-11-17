@@ -223,6 +223,18 @@ export default function NuevaSolicitud({ embedded = false, onClose }: NuevaSolic
       ? 'bg-amber-500'
       : 'bg-emerald-500';
 
+  const topeAnualUso = usoSeleccionado?.asignado_anual ?? null;
+  const usadoAnualUso = Number(usoSeleccionado?.usado_anual || 0);
+  const porcentajeAnualUso =
+    topeAnualUso !== null && Number(topeAnualUso) > 0
+      ? Math.min(100, (usadoAnualUso / Number(topeAnualUso)) * 100)
+      : 0;
+  const colorAnualUso = usoSeleccionado?.alcanzado_anual
+    ? 'bg-red-500'
+    : porcentajeAnualUso >= 75
+      ? 'bg-amber-500'
+      : 'bg-emerald-500';
+
   const fechaFinEfectiva = React.useMemo(() => {
     if (!fechaFin) return fechaFin;
     let f = fechaFin;
@@ -550,19 +562,40 @@ export default function NuevaSolicitud({ embedded = false, onClose }: NuevaSolic
             {tipoSeleccionado && usoSeleccionado && (
               <div
                 className={`mt-2 rounded-xl border p-4 ${
-                  usoSeleccionado.alcanzado
+                  (limiteUso !== null && usoSeleccionado.alcanzado) ||
+                  (limiteUso === null && usoSeleccionado.alcanzado_anual)
                     ? 'border-red-200 bg-red-50'
                     : 'border-border bg-slate-50'
                 }`}
               >
                 <div className="flex items-center justify-between gap-3 mb-2">
-                  <p className="text-sm font-semibold text-text">Uso mensual</p>
+                  <p className="text-sm font-semibold text-text">
+                    {limiteUso !== null
+                      ? 'Uso mensual'
+                      : topeAnualUso !== null
+                        ? 'Uso anual'
+                        : 'Uso del tipo'}
+                  </p>
                   {limiteUso !== null ? (
-                    <span className={`text-sm font-bold ${usoSeleccionado.alcanzado ? 'text-red-600' : 'text-text'}`}>
+                    <span
+                      className={`text-sm font-bold ${
+                        usoSeleccionado.alcanzado ? 'text-red-600' : 'text-text'
+                      }`}
+                    >
                       {usoSeleccionado.usadas} / {limiteUso}
                     </span>
+                  ) : topeAnualUso !== null ? (
+                    <span
+                      className={`text-xs font-bold ${
+                        usoSeleccionado.alcanzado_anual ? 'text-red-600' : 'text-text'
+                      }`}
+                    >
+                      {usadoAnualUso} / {topeAnualUso} {unidadLabel(usoSeleccionado.unidad_medida)}
+                    </span>
                   ) : (
-                    <span className="text-xs font-medium text-text-muted">Sin tope mensual</span>
+                    <span className="text-xs font-medium text-text-muted">
+                      Sin tope mensual ni anual
+                    </span>
                   )}
                 </div>
 
@@ -585,26 +618,71 @@ export default function NuevaSolicitud({ embedded = false, onClose }: NuevaSolic
                       </div>
                       <div className="rounded-lg bg-white/70 border border-border/60 p-2">
                         <p className="text-xs text-text-muted uppercase">Disponibles</p>
-                        <p className={`text-base font-bold ${usoSeleccionado.alcanzado ? 'text-red-600' : 'text-text'}`}>
+                        <p
+                          className={`text-base font-bold ${
+                            usoSeleccionado.alcanzado ? 'text-red-600' : 'text-text'
+                          }`}
+                        >
                           {usoSeleccionado.disponibles ?? 0}
                         </p>
                       </div>
                     </div>
+                    <p className="mt-2 text-xs text-text-muted">
+                      El conteo incluye solicitudes pendientes y aprobadas.
+                    </p>
+                    {usoSeleccionado.alcanzado && (
+                      <p className="mt-2 text-sm font-semibold text-red-700">
+                        Alcanzaste el tope mensual de este tipo.
+                      </p>
+                    )}
+                  </>
+                ) : topeAnualUso !== null ? (
+                  <>
+                    <ProgressBar
+                      valor={usadoAnualUso}
+                      maximo={Number(topeAnualUso)}
+                      className="h-3"
+                      color={colorAnualUso}
+                    />
+                    <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+                      <div className="rounded-lg bg-white/70 border border-border/60 p-2">
+                        <p className="text-xs text-text-muted uppercase">Tope anual</p>
+                        <p className="text-sm font-bold text-text">
+                          {topeAnualUso} {unidadLabel(usoSeleccionado.unidad_medida)}
+                        </p>
+                      </div>
+                      <div className="rounded-lg bg-white/70 border border-border/60 p-2">
+                        <p className="text-xs text-text-muted uppercase">Usado</p>
+                        <p className="text-sm font-bold text-text">
+                          {usadoAnualUso} {unidadLabel(usoSeleccionado.unidad_medida)}
+                        </p>
+                      </div>
+                      <div className="rounded-lg bg-white/70 border border-border/60 p-2">
+                        <p className="text-xs text-text-muted uppercase">Disponible</p>
+                        <p
+                          className={`text-sm font-bold ${
+                            usoSeleccionado.alcanzado_anual ? 'text-red-600' : 'text-text'
+                          }`}
+                        >
+                          {usoSeleccionado.disponible_anual ?? 0}{' '}
+                          {unidadLabel(usoSeleccionado.unidad_medida)}
+                        </p>
+                      </div>
+                    </div>
+                    <p className="mt-2 text-xs text-text-muted">
+                      Este tipo no tiene tope mensual; se muestra su tope anual.
+                    </p>
+                    {usoSeleccionado.alcanzado_anual && (
+                      <p className="mt-2 text-sm font-semibold text-red-700">
+                        Alcanzaste el tope anual de este tipo.
+                      </p>
+                    )}
                   </>
                 ) : (
                   <div className="flex items-center justify-between rounded-lg bg-white/70 border border-border/60 px-3 py-2">
                     <span className="text-sm text-text-muted">Solicitudes usadas este mes</span>
                     <span className="text-sm font-bold text-text">{usoSeleccionado.usadas}</span>
                   </div>
-                )}
-
-                <p className="mt-2 text-xs text-text-muted">
-                  El conteo incluye solicitudes pendientes y aprobadas.
-                </p>
-                {usoSeleccionado.alcanzado && (
-                  <p className="mt-2 text-sm font-semibold text-red-700">
-                    Alcanzaste el tope mensual de este tipo.
-                  </p>
                 )}
               </div>
             )}

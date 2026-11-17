@@ -42,7 +42,9 @@ export default function MisSaldos() {
   const iconos: Record<string, any> = { LICENCIA: Wallet, PERMISO: Clock };
 
   const conTope = mensuales.filter((m) => m.max_solicitudes_mes !== null);
-  const sinTope = mensuales.filter((m) => m.max_solicitudes_mes === null && m.usadas > 0);
+  const sinTope = mensuales.filter(
+    (m) => m.max_solicitudes_mes === null && (m.usadas > 0 || m.asignado_anual !== null)
+  );
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -245,20 +247,53 @@ export default function MisSaldos() {
                 Tipos sin límite de solicitudes por mes, con el consumo registrado en el período.
               </p>
               <div className="divide-y divide-border">
-                {sinTope.map((m) => (
-                  <div key={m.id_tipo} className="flex items-center justify-between gap-3 py-3">
-                    <div>
-                      <p className="text-sm font-medium text-text">{m.nombre}</p>
-                      <p className="text-xs text-gray-500">Sin límite mensual</p>
+                {sinTope.map((m) => {
+                  const topeAnual = m.asignado_anual !== null ? Number(m.asignado_anual) : null;
+                  const usadoAnual = Number(m.usado_anual || 0);
+                  const porcentajeAnual = topeAnual && topeAnual > 0
+                    ? Math.min(100, (usadoAnual / topeAnual) * 100)
+                    : 0;
+                  const colorAnual = m.alcanzado_anual
+                    ? 'bg-red-500'
+                    : porcentajeAnual >= 75
+                      ? 'bg-amber-500'
+                      : 'bg-emerald-500';
+
+                  return (
+                    <div key={m.id_tipo} className="py-3 space-y-2">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-medium text-text">{m.nombre}</p>
+                          <p className="text-xs text-gray-500">
+                            {topeAnual !== null
+                              ? `Sin tope mensual · Tope anual: ${topeAnual} ${unidadLabel(m.unidad_medida)}`
+                              : 'Sin tope mensual ni anual'}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm font-medium text-text">{m.usadas} solicitud(es)</p>
+                          <p className="text-xs text-gray-500">
+                            {m.cantidad_usada} {unidadLabel(m.unidad_medida)} aprobados
+                          </p>
+                        </div>
+                      </div>
+                      {topeAnual !== null && (
+                        <>
+                          <ProgressBar
+                            valor={usadoAnual}
+                            maximo={topeAnual}
+                            className="h-2"
+                            color={colorAnual}
+                          />
+                          <p className="text-xs text-text-muted">
+                            Usado: {usadoAnual} {unidadLabel(m.unidad_medida)} ·
+                            {' '}Disponible: {m.disponible_anual ?? 0} {unidadLabel(m.unidad_medida)}
+                          </p>
+                        </>
+                      )}
                     </div>
-                    <div className="text-right">
-                      <p className="text-sm font-medium text-text">{m.usadas} solicitud(es)</p>
-                      <p className="text-xs text-gray-500">
-                        {m.cantidad_usada} {unidadLabel(m.unidad_medida)} aprobados
-                      </p>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </Card>
           )}
