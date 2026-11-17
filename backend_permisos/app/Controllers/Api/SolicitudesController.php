@@ -98,7 +98,7 @@ class SolicitudesController extends BaseApiController
         }
 
         $lista = $this->archivosSubidos();
-        if (! empty($tipo['requiere_sustento']) && empty($lista)) {
+        if (! empty($tipo['requiere_sustento']) && ! $this->esPermisoHoras($tipo) && empty($lista)) {
             return ApiResponse::error('Debe adjuntar el documento de sustento.', 422);
         }
 
@@ -368,7 +368,7 @@ class SolicitudesController extends BaseApiController
 
         $lista = $this->archivosSubidos();
         $svc = new SolicitudService();
-        if (! empty($tipo['requiere_sustento']) && empty($lista) && $svc->contarAdjuntos($id) < 1) {
+        if (! empty($tipo['requiere_sustento']) && ! $this->esPermisoHoras($tipo) && empty($lista) && $svc->contarAdjuntos($id) < 1) {
             return ApiResponse::error('Debe adjuntar el documento de sustento.', 422);
         }
 

@@ -262,7 +262,8 @@ export default function NuevaSolicitud({ embedded = false, onClose }: NuevaSolic
     reiniciarTipo();
   };
 
-  const requiereSustento = asBool(tipoSeleccionado?.requiere_sustento);
+  const requiereSustento =
+    tipoSeleccionado?.unidad_medida !== 'HORAS' && asBool(tipoSeleccionado?.requiere_sustento);
   const tieneSustento = archivos.length > 0 || adjuntosExistentes.length > 0;
   const requiereEntregaCargo =
     tipoSeleccionado?.categoria === 'LICENCIA' &&
@@ -417,9 +418,9 @@ export default function NuevaSolicitud({ embedded = false, onClose }: NuevaSolic
                 <div className="w-12 h-12 rounded-xl bg-primary-50 text-primary-600 flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
                   <Clock className="w-6 h-6" />
                 </div>
-                <p className="text-lg font-semibold text-text">Permiso por horas</p>
+                <p className="text-lg font-semibold text-text">PAPELETA</p>
                 <p className="text-sm text-text-muted mt-1">
-                  Salida y retorno el mismo día. Ideal para trámites, salud o asuntos personales.
+                  Permiso por horas: Salida y retorno el mismo día. Ideal para trámites, salud o asuntos personales.
                 </p>
                 <p className="text-xs font-medium text-primary-600 mt-4">
                   {conteoHoras} tipo(s) disponible(s)
@@ -743,6 +744,11 @@ export default function NuevaSolicitud({ embedded = false, onClose }: NuevaSolic
           )}
 
           <DropZone onFilesChange={setArchivos} accept=".pdf,.jpg,.jpeg,.png" className="mb-2" />
+          {tipoSeleccionado?.unidad_medida === 'HORAS' && (
+            <p className="helper-text">
+              La evidencia es opcional en permisos por horas. Puede adjuntarla si desea respaldar su solicitud.
+            </p>
+          )}
           {requiereSustento && !tieneSustento && (
             <p className="error-text">Debe adjuntar al menos un documento de sustento.</p>
           )}

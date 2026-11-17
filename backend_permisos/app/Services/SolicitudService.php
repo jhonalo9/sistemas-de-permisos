@@ -133,7 +133,10 @@ class SolicitudService
         if ($tipo['unidad_medida'] !== 'HORAS' && (float) $s['cantidad'] <= 0) {
             throw new \RuntimeException('La cantidad calculada debe ser mayor que cero.');
         }
-        if (! empty($tipo['requiere_sustento']) && $this->contarAdjuntos($idSolicitud) < 1) {
+        if (! empty($tipo['requiere_sustento'])
+            && $tipo['unidad_medida'] !== 'HORAS'
+            && $this->contarAdjuntos($idSolicitud) < 1
+        ) {
             throw new \RuntimeException('Debe adjuntar el documento de sustento.');
         }
 
