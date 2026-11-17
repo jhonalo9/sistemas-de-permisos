@@ -56,7 +56,17 @@ export default function EmisionPapeleta() {
   const esPermisoHoras =
     solicitud.tipo?.unidad_medida === 'HORAS' ||
     solicitud.tipo?.codigo === 'PER_COMISION_SERVICIO';
-  const puedeImprimir = solicitud.estado === 'APROBADA_RRHH' && !!solicitud.token_codigo;
+  const puedeImprimir =
+    (['APROBADA_RRHH', 'EN_CURSO', 'EJECUTADA'].includes(solicitud.estado) ||
+      (solicitud.estado === 'APROBADA' && solicitud.tipo?.unidad_medida === 'HORAS')) &&
+    !!solicitud.token_codigo;
+  const marcaciones = solicitud.marcaciones || [];
+  const salidaControl = marcaciones.find((m: any) => m.tipo === 'SALIDA');
+  const retornoControl = marcaciones.find((m: any) => m.tipo === 'RETORNO');
+  const cierreControl = marcaciones.find((m: any) => m.tipo === 'CIERRE');
+  const sinRetorno = Number(solicitud.con_retorno) === 0;
+  const formatearHoraMarcacion = (valor?: string | null) =>
+    valor ? String(valor).slice(11, 16) : 'Pendiente';
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -95,13 +105,33 @@ export default function EmisionPapeleta() {
             <p className="text-xs text-gray-500 uppercase">Fechas</p>
             <p className="font-medium text-text">{formatearFecha(solicitud.fecha_inicio)} - {formatearFecha(solicitud.fecha_fin)}</p>
           </div>
-          {solicitud.hora_inicio && (
+          {esPermisoHoras && (
+            <>
+              <div>
+                <p className="text-xs text-gray-500 uppercase">Salida en Control</p>
+                <p className="font-medium text-text">
+                  {formatearHoraMarcacion(salidaControl?.fecha_hora)}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 uppercase">
+                  {sinRetorno ? 'Retorno' : 'Retorno en Control'}
+                </p>
+                <p className="font-medium text-text">
+                  {sinRetorno
+                    ? 'Sin retorno'
+                    : formatearHoraMarcacion(retornoControl?.fecha_hora || cierreControl?.fecha_hora)}
+                </p>
+              </div>
+            </>
+          )}
+          {!esPermisoHoras && solicitud.hora_inicio && (
             <div>
               <p className="text-xs text-gray-500 uppercase">Hora salida</p>
               <p className="font-medium text-text">{solicitud.hora_inicio}</p>
             </div>
           )}
-          {solicitud.hora_fin && (
+          {!esPermisoHoras && solicitud.hora_fin && (
             <div>
               <p className="text-xs text-gray-500 uppercase">Hora retorno</p>
               <p className="font-medium text-text">{solicitud.hora_fin}</p>

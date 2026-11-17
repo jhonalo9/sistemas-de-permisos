@@ -61,10 +61,12 @@ SELECT
   sol.fecha_fin,
   sol.hora_inicio,
   sol.hora_fin,
+  sol.con_retorno,
   sol.estado,
   sol.es_urgente,
   t.codigo AS tipo_codigo,
   t.nombre AS tipo_nombre,
+  t.unidad_medida,
   m_sal.fecha_hora AS hora_salida,
   m_ret.fecha_hora AS hora_retorno,
   TIMESTAMPDIFF(MINUTE, m_sal.fecha_hora, NOW()) AS minutos_fuera
@@ -79,5 +81,5 @@ LEFT JOIN permiso_marcacion_control m_ret
  AND m_ret.tipo = 'RETORNO'
 WHERE m_sal.tipo = 'SALIDA'
   AND m_ret.id_marcacion IS NULL
-  AND sol.estado IN ('APROBADA_RRHH', 'EN_CURSO', 'REGULARIZAR', 'EJECUTADA')
+  AND sol.estado IN ('APROBADA', 'APROBADA_RRHH', 'EN_CURSO', 'REGULARIZAR')
   AND s.estado = 'ACTIVO';

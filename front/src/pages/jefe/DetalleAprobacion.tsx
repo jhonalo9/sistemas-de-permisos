@@ -32,11 +32,15 @@ export default function DetalleAprobacion() {
 
   async function decidir(accion: 'aprobar' | 'observar' | 'rechazar', comentario?: string) {
     try {
-      await apiClient<any>(`/aprobaciones/${id}/${accion}`, {
+      const res = await apiClient<any>(`/aprobaciones/${id}/${accion}`, {
         method: 'POST',
         body: accion === 'observar' ? { comentario } : accion === 'rechazar' ? { motivo: comentario } : {},
       });
-      toast.success('Decisión registrada', `Solicitud ${accion === 'observar' ? 'observada' : accion === 'rechazar' ? 'rechazada' : 'aprobada'}.`);
+      const mensaje =
+        accion === 'aprobar'
+          ? (res as any).mensaje || 'Solicitud aprobada.'
+          : `Solicitud ${accion === 'observar' ? 'observada' : 'rechazada'}.`;
+      toast.success('Decisión registrada', mensaje);
       navigate('/jefe/aprobaciones');
     } catch (e: any) {
       toast.error('Error al registrar decisión', e.mensaje);
@@ -63,6 +67,9 @@ export default function DetalleAprobacion() {
   const saldoTexto = solicitud.servidor?.saldo
     ? `${solicitud.servidor.saldo.usado}/${solicitud.servidor.saldo.asignado} ${unidadLabel(solicitud.tipo?.unidad_medida || 'DIAS')}`
     : '—';
+  const esPermisoHoras =
+    solicitud.tipo?.categoria === 'PERMISO' && solicitud.tipo?.unidad_medida === 'HORAS';
+  const sinRetorno = esPermisoHoras && Number(solicitud.con_retorno) === 0;
 
   const servidorNombre = [solicitud.servidor?.apellidos, solicitud.servidor?.nombres]
     .filter(Boolean)
@@ -139,9 +146,19 @@ export default function DetalleAprobacion() {
               <div>
                 <p className="text-xs text-gray-500 uppercase">Cantidad</p>
                 <p className="font-medium text-text">
-                  {solicitud.cantidad} {unidadLabel(solicitud.tipo?.unidad_medida || 'DIAS')}
+                  {esPermisoHoras && Number(solicitud.cantidad) <= 0
+                    ? 'Pendiente de Control'
+                    : `${solicitud.cantidad} ${unidadLabel(solicitud.tipo?.unidad_medida || 'DIAS')}`}
                 </p>
               </div>
+              {esPermisoHoras && (
+                <div>
+                  <p className="text-xs text-gray-500 uppercase">Retorno</p>
+                  <p className="font-medium text-text">
+                    {sinRetorno ? 'Sin retorno' : 'Con retorno'}
+                  </p>
+                </div>
+              )}
               <div>
                 <p className="text-xs text-gray-500 uppercase">Saldo servidor</p>
                 <p className="font-medium text-text">{saldoTexto}</p>
@@ -224,8 +241,15 @@ export default function DetalleAprobacion() {
                   }}
                 >
                   <Check className="w-4 h-4 mr-2" />
-                  Aprobar solicitud
+                  {esPermisoHoras ? 'Aprobar y generar papeleta' : 'Aprobar solicitud'}
                 </Button>
+                {esPermisoHoras && (
+                  <p className="text-xs text-primary-700 bg-primary-50 border border-primary-100 rounded-lg p-3">
+                    Este permiso no pasa por RRHH. Al aprobarlo se genera el código de barras y
+                    queda pendiente de la salida en Control de Personal.
+                    {sinRetorno ? ' Fue registrado como sin retorno.' : ''}
+                  </p>
+                )}
                 <Button variant="outline" className="w-full" onClick={() => setMotivoModal('observar')}>
                   <AlertTriangle className="w-4 h-4 mr-2" />
                   Observar (comentario obligatorio)

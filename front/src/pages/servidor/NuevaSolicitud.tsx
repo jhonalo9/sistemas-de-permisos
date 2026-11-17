@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button, Input, Select, TextArea, DropZone, Card, useToast } from '@/components/common';
-import { calcularDiasEntre, calcularHorasEntre, categoriaLabel, unidadLabel, errorMessage, asBool, asNum } from '@/utils/format';
+import { calcularDiasEntre, categoriaLabel, unidadLabel, asBool, asNum } from '@/utils/format';
 import { AlertTriangle, CalendarDays, Clock, FileText } from 'lucide-react';
 
 const schema = z
@@ -16,6 +16,7 @@ const schema = z
     hora_inicio: z.string().optional(),
     hora_fin: z.string().optional(),
     motivo: z.string().min(5, 'El motivo debe tener al menos 5 caracteres'),
+    con_retorno: z.boolean().optional(),
     entrega_cargo: z.boolean().optional(),
   })
   .superRefine((data, ctx) => {
@@ -28,6 +29,11 @@ const schema = z
 interface NuevaSolicitudProps {
   embedded?: boolean;
   onClose?: () => void;
+}
+
+function hoyISO(): string {
+  const hoy = new Date();
+  return `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`;
 }
 
 function sumarDiasFecha(fecha: string, dias: number, calendario: boolean): string {
@@ -92,22 +98,22 @@ export default function NuevaSolicitud({ embedded = false, onClose }: NuevaSolic
     resolver: zodResolver(schema),
     defaultValues: {
       id_tipo: '',
-      fecha_inicio: '',
-      fecha_fin: '',
+      fecha_inicio: hoyISO(),
+      fecha_fin: hoyISO(),
       hora_inicio: '',
       hora_fin: '',
       motivo: '',
       lugar_comision: '',
+      con_retorno: true,
       entrega_cargo: false,
     },
   });
 
   const fechaInicio = watch('fecha_inicio');
   const fechaFin = watch('fecha_fin');
-  const horaInicio = watch('hora_inicio');
-  const horaFin = watch('hora_fin');
   const idTipo = watch('id_tipo');
   const entregaCargo = watch('entrega_cargo');
+  const conRetorno = watch('con_retorno');
 
   React.useEffect(() => {
     (async () => {
@@ -151,6 +157,7 @@ export default function NuevaSolicitud({ embedded = false, onClose }: NuevaSolic
             hora_fin: (sol.hora_fin || '').slice(0, 5),
             motivo: sol.motivo || '',
             lugar_comision: sol.lugar_comision || '',
+            con_retorno: sol.con_retorno == null ? true : asBool(sol.con_retorno),
             entrega_cargo: asBool(sol.entrega_cargo),
           });
         } else {
@@ -162,11 +169,13 @@ export default function NuevaSolicitud({ embedded = false, onClose }: NuevaSolic
           setCondicionesSel([]);
           reset({
             id_tipo: '',
-            fecha_inicio: '',
-            fecha_fin: '',
+            fecha_inicio: hoyISO(),
+            fecha_fin: hoyISO(),
             hora_inicio: '',
             hora_fin: '',
             motivo: '',
+            lugar_comision: '',
+            con_retorno: true,
             entrega_cargo: false,
           });
         }
@@ -195,16 +204,17 @@ export default function NuevaSolicitud({ embedded = false, onClose }: NuevaSolic
       setCantidad(0);
       return;
     }
-    if (tipoSeleccionado.unidad_medida === 'HORAS' && horaInicio && horaFin) {
-      setCantidad(calcularHorasEntre(horaInicio, horaFin));
+    if (tipoSeleccionado.unidad_medida === 'HORAS') {
+      // La duración real la registra Control de Personal.
+      setCantidad(0);
     } else if (tipoSeleccionado.unidad_medida === 'DIAS' && fechaInicio && fechaFin) {
       setCantidad(calcularDiasEntre(fechaInicio, fechaFin) + diasExtra);
     } else if (tipoSeleccionado.categoria === 'PERMISO' && fechaInicio) {
-      setCantidad(tipoSeleccionado.unidad_medida === 'HORAS' ? 0 : 1 + diasExtra);
+      setCantidad(1 + diasExtra);
     } else {
       setCantidad(0);
     }
-  }, [fechaInicio, fechaFin, diasExtra, horaInicio, horaFin, tipoSeleccionado]);
+  }, [fechaInicio, fechaFin, diasExtra, tipoSeleccionado]);
 
   const alternarCondicion = (condicion: any) => {
     setCondicionesSel((prev) => {
@@ -230,11 +240,12 @@ export default function NuevaSolicitud({ embedded = false, onClose }: NuevaSolic
 
   const reiniciarTipo = () => {
     setValue('id_tipo', '', { shouldValidate: false });
-    setValue('fecha_inicio', '', { shouldValidate: false });
-    setValue('fecha_fin', '', { shouldValidate: false });
+    setValue('fecha_inicio', hoyISO(), { shouldValidate: false });
+    setValue('fecha_fin', hoyISO(), { shouldValidate: false });
     setValue('hora_inicio', '', { shouldValidate: false });
     setValue('hora_fin', '', { shouldValidate: false });
     setValue('lugar_comision', '', { shouldValidate: false });
+    setValue('con_retorno', true, { shouldValidate: false });
     setValue('entrega_cargo', false, { shouldValidate: false });
     setTipoSeleccionado(null);
     setCondicionesSel([]);
@@ -267,9 +278,11 @@ export default function NuevaSolicitud({ embedded = false, onClose }: NuevaSolic
 
   const construirFormData = (datos: any, borrador: boolean): FormData => {
     const fechaFinFinal =
-      datos.fecha_fin && datos.fecha_fin.length > 0
-        ? datos.fecha_fin
-        : datos.fecha_inicio;
+      tipoSeleccionado?.unidad_medida === 'HORAS'
+        ? datos.fecha_inicio
+        : datos.fecha_fin && datos.fecha_fin.length > 0
+          ? datos.fecha_fin
+          : datos.fecha_inicio;
 
     const formData = new FormData();
     formData.append('id_tipo', String(datos.id_tipo));
@@ -279,6 +292,9 @@ export default function NuevaSolicitud({ embedded = false, onClose }: NuevaSolic
     if (datos.hora_fin) formData.append('hora_fin', datos.hora_fin);
     if (datos.motivo) formData.append('motivo', datos.motivo);
     if (datos.lugar_comision) formData.append('lugar_comision', datos.lugar_comision);
+    if (tipoSeleccionado?.unidad_medida === 'HORAS') {
+      formData.append('con_retorno', conRetorno ? '1' : '0');
+    }
     if (condicionesSel.length > 0) {
       formData.append('condiciones', condicionesSel.map((c) => c.id_condicion).join(','));
     }
@@ -606,30 +622,59 @@ export default function NuevaSolicitud({ embedded = false, onClose }: NuevaSolic
           )}
 
           {tipoSeleccionado && tipoSeleccionado.categoria === 'PERMISO' && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Input label="Fecha" type="date" {...register('fecha_inicio')} error={errors.fecha_inicio} />
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Input label="Fecha" type="date" {...register('fecha_inicio')} error={errors.fecha_inicio} />
+              </div>
               {tipoSeleccionado.unidad_medida === 'HORAS' && (
-                <>
-                  <div>
-                    <label className="label">Hora de salida</label>
-                    <input {...register('hora_inicio')} type="time" className="input-field" />
-                    {errorMessage(errors.hora_inicio) && (
-                      <p className="error-text">{errorMessage(errors.hora_inicio)}</p>
-                    )}
+                <div>
+                  <label className="label">¿El servidor retornará?</label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setValue('con_retorno', true, { shouldValidate: true })}
+                      className={`text-left p-4 rounded-xl border-2 transition-colors ${
+                        conRetorno
+                          ? 'border-primary-500 bg-primary-50/70'
+                          : 'border-border bg-card hover:border-primary-300'
+                      }`}
+                    >
+                      <p className="font-semibold text-text">Con retorno</p>
+                      <p className="text-sm text-text-muted mt-1">
+                        Control registrará la salida y el retorno.
+                      </p>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setValue('con_retorno', false, { shouldValidate: true })}
+                      className={`text-left p-4 rounded-xl border-2 transition-colors ${
+                        !conRetorno
+                          ? 'border-primary-500 bg-primary-50/70'
+                          : 'border-border bg-card hover:border-primary-300'
+                      }`}
+                    >
+                      <p className="font-semibold text-text">Sin retorno</p>
+                      <p className="text-sm text-text-muted mt-1">
+                        Control registrará la salida y cerrará el permiso manualmente.
+                      </p>
+                    </button>
                   </div>
-                  <div>
-                    <label className="label">Hora de retorno</label>
-                    <input {...register('hora_fin')} type="time" className="input-field" />
-                    {errorMessage(errors.hora_fin) && (
-                      <p className="error-text">{errorMessage(errors.hora_fin)}</p>
-                    )}
-                  </div>
-                </>
+                  <p className="helper-text">
+                    Las horas reales de salida y retorno serán registradas por Control de Personal.
+                  </p>
+                </div>
               )}
             </div>
           )}
 
-          {tipoSeleccionado && (
+          {tipoSeleccionado && tipoSeleccionado.unidad_medida === 'HORAS' ? (
+            <div className="rounded-xl border border-dashed border-primary-200 bg-primary-50/40 p-4">
+              <p className="text-sm font-semibold text-text">Duración pendiente de Control</p>
+              <p className="text-sm text-text-muted mt-1">
+                El saldo se calculará con las horas reales de salida y retorno.
+              </p>
+            </div>
+          ) : tipoSeleccionado && (
             <div>
               <label className="label">Cantidad calculada</label>
               <div className="flex items-center gap-2">

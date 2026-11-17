@@ -33,6 +33,35 @@ class AprobacionesController extends BaseApiController
         if ($s['estado'] !== 'PENDIENTE') return ApiResponse::error('Solicitud no está pendiente.', 422);
         if (! $this->puedeGestionar($s)) return ApiResponse::error('No autorizado.', 403);
 
+        $tipo = db_connect()->table('permiso_tipo_solicitud')
+            ->where('id_tipo', $s['id_tipo'])
+            ->get()->getRowArray();
+
+        $esPermisoHoras = $tipo
+            && ($tipo['categoria'] ?? '') === 'PERMISO'
+            && ($tipo['unidad_medida'] ?? '') === 'HORAS';
+
+        if ($esPermisoHoras) {
+            $token = $s['token_codigo'] ?? null;
+            if (empty($token)) {
+                $token = strtoupper(bin2hex(random_bytes(8)));
+            }
+
+            (new SolicitudService())->cambiarEstado(
+                $id,
+                'APROBADA',
+                $this->idUsuario(),
+                'Aprobada por jefe inmediato. Pendiente de salida en Control.',
+                ['token_codigo' => $token]
+            );
+
+            return ApiResponse::ok(null, 200, [
+                'mensaje'      => 'Permiso aprobado. La papeleta ya puede imprimirse.',
+                'token_codigo' => $token,
+                'flujo'        => 'JEFE',
+            ]);
+        }
+
         (new SolicitudService())->cambiarEstado($id, 'APROBADA_JEFE', $this->idUsuario(), 'Aprobada por jefe inmediato.');
         return ApiResponse::ok(null, 200, ['mensaje' => 'Aprobada.']);
     }
@@ -83,7 +112,7 @@ class AprobacionesController extends BaseApiController
                 ->join('permiso_servidor sv', 'sv.id_servidor = s.id_servidor')
                 ->join('permiso_tipo_solicitud t', 't.id_tipo = s.id_tipo')
                 ->where('sv.id_jefe', $idJefe)
-                ->whereIn('s.estado', ['APROBADA_JEFE', 'APROBADA_RRHH'])
+                ->whereIn('s.estado', ['APROBADA_JEFE', 'APROBADA', 'APROBADA_RRHH'])
                 ->where('s.fecha_fin >=', date('Y-m-d'))
                 ->orderBy('s.fecha_inicio')
                 ->get()->getResultArray(),
@@ -105,7 +134,7 @@ class AprobacionesController extends BaseApiController
                       CONCAT(sv.apellidos, ", ", sv.nombres) AS servidor')
             ->join('permiso_servidor sv', 'sv.id_servidor = s.id_servidor')
             ->where('sv.id_servidor <>', $s['id_servidor'])
-            ->whereIn('s.estado', ['APROBADA_JEFE', 'APROBADA_RRHH', 'EN_CURSO'])
+            ->whereIn('s.estado', ['APROBADA_JEFE', 'APROBADA', 'APROBADA_RRHH', 'EN_CURSO'])
             ->where('s.fecha_inicio <=', $s['fecha_fin'])
             ->where('s.fecha_fin >=', $s['fecha_inicio']);
 

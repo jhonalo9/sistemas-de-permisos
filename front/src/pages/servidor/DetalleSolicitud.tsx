@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { apiClient, obtenerCodigoBarras } from '@/services/api';
 import { Button, Badge, Card, ConfidentialBadge, Input, TextArea, TimelineItem, useToast } from '@/components/common';
 import VistaPreviaAdjunto from '@/components/adjuntos/VistaPreviaAdjunto';
-import { formatearFecha, categoriaLabel, acortarNombreArchivo } from '@/utils/format';
+import { formatearFecha, formatearHora, categoriaLabel, acortarNombreArchivo } from '@/utils/format';
 import { Copy, FileText, Eye, ArrowLeft } from 'lucide-react';
 
 export default function DetalleSolicitud() {
@@ -19,6 +19,7 @@ export default function DetalleSolicitud() {
     hora_inicio: '',
     hora_fin: '',
     motivo: '',
+    con_retorno: true,
   });
   const [showBarcode, setShowBarcode] = React.useState(false);
   const [barcodeUrl, setBarcodeUrl] = React.useState<string | null>(null);
@@ -45,6 +46,7 @@ export default function DetalleSolicitud() {
       hora_inicio: (solicitud.hora_inicio || '').slice(0, 5),
       hora_fin: (solicitud.hora_fin || '').slice(0, 5),
       motivo: solicitud.motivo || '',
+      con_retorno: solicitud.con_retorno == null ? true : Number(solicitud.con_retorno) === 1,
     });
     setShowCorreccion(true);
   };
@@ -118,20 +120,46 @@ export default function DetalleSolicitud() {
   }
 
   const puedeCorregir = solicitud.estado === 'OBSERVADA';
-  const puedeAnular = ['BORRADOR', 'PENDIENTE', 'OBSERVADA', 'APROBADA_JEFE'].includes(solicitud.estado);
+  const puedeAnular = ['BORRADOR', 'PENDIENTE', 'OBSERVADA', 'APROBADA_JEFE', 'APROBADA'].includes(solicitud.estado);
 
   const marcaciones = solicitud.marcaciones || [];
   const salida = marcaciones.find((m: any) => m.tipo === 'SALIDA');
   const retorno = marcaciones.find((m: any) => m.tipo === 'RETORNO');
+  const cierre = marcaciones.find((m: any) => m.tipo === 'CIERRE');
+  const esPermisoHoras =
+    solicitud.tipo?.categoria === 'PERMISO' && solicitud.tipo?.unidad_medida === 'HORAS';
+  const sinRetorno = esPermisoHoras && Number(solicitud.con_retorno) === 0;
 
-  const timeline = [
-    { title: 'Solicitud enviada', subtitulo: 'Servidor', fecha: solicitud.creado_en, completado: true },
-    { title: 'Revisión jefe inmediato', subtitulo: 'Jefe', fecha: '', completado: ['APROBADA_JEFE', 'APROBADA_RRHH', 'EN_CURSO', 'EJECUTADA'].includes(solicitud.estado) },
-    { title: 'Validación RRHH', subtitulo: 'RRHH', fecha: '', completado: ['APROBADA_RRHH', 'EN_CURSO', 'EJECUTADA'].includes(solicitud.estado) },
-    { title: 'Resolución emitida', subtitulo: 'RRHH', fecha: solicitud.fecha_resolucion || '', completado: ['APROBADA_RRHH', 'EN_CURSO', 'EJECUTADA'].includes(solicitud.estado) },
-    { title: 'Salida registrada', subtitulo: 'Control', fecha: salida?.fecha_hora || '', completado: !!salida || ['EN_CURSO', 'EJECUTADA'].includes(solicitud.estado) },
-    { title: 'Retorno registrado', subtitulo: 'Control', fecha: retorno?.fecha_hora || '', completado: !!retorno || solicitud.estado === 'EJECUTADA' },
-  ];
+  const timeline = esPermisoHoras
+    ? [
+        { title: 'Solicitud enviada', subtitulo: 'Servidor', fecha: solicitud.creado_en, completado: true },
+        {
+          title: 'Aprobación del jefe inmediato',
+          subtitulo: 'Jefe',
+          fecha: '',
+          completado: ['APROBADA', 'EN_CURSO', 'EJECUTADA'].includes(solicitud.estado),
+        },
+        {
+          title: 'Salida registrada',
+          subtitulo: 'Control',
+          fecha: salida?.fecha_hora || '',
+          completado: !!salida || ['EN_CURSO', 'EJECUTADA'].includes(solicitud.estado),
+        },
+        {
+          title: sinRetorno ? 'Cierre sin retorno' : 'Retorno registrado',
+          subtitulo: 'Control',
+          fecha: retorno?.fecha_hora || cierre?.fecha_hora || '',
+          completado: !!retorno || !!cierre || solicitud.estado === 'EJECUTADA',
+        },
+      ]
+    : [
+        { title: 'Solicitud enviada', subtitulo: 'Servidor', fecha: solicitud.creado_en, completado: true },
+        { title: 'Revisión jefe inmediato', subtitulo: 'Jefe', fecha: '', completado: ['APROBADA_JEFE', 'APROBADA_RRHH', 'EN_CURSO', 'EJECUTADA'].includes(solicitud.estado) },
+        { title: 'Validación RRHH', subtitulo: 'RRHH', fecha: '', completado: ['APROBADA_RRHH', 'EN_CURSO', 'EJECUTADA'].includes(solicitud.estado) },
+        { title: 'Resolución emitida', subtitulo: 'RRHH', fecha: solicitud.fecha_resolucion || '', completado: ['APROBADA_RRHH', 'EN_CURSO', 'EJECUTADA'].includes(solicitud.estado) },
+        { title: 'Salida registrada', subtitulo: 'Control', fecha: salida?.fecha_hora || '', completado: !!salida || ['EN_CURSO', 'EJECUTADA'].includes(solicitud.estado) },
+        { title: 'Retorno registrado', subtitulo: 'Control', fecha: retorno?.fecha_hora || '', completado: !!retorno || solicitud.estado === 'EJECUTADA' },
+      ];
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
@@ -178,18 +206,30 @@ export default function DetalleSolicitud() {
               {solicitud.hora_inicio && (
                 <div>
                   <p className="text-xs text-gray-500 uppercase">Hora salida</p>
-                  <p className="font-medium text-text">{solicitud.hora_inicio}</p>
+                  <p className="font-medium text-text">{formatearHora(solicitud.hora_inicio)}</p>
                 </div>
               )}
               {solicitud.hora_fin && (
                 <div>
                   <p className="text-xs text-gray-500 uppercase">Hora retorno</p>
-                  <p className="font-medium text-text">{solicitud.hora_fin}</p>
+                  <p className="font-medium text-text">{formatearHora(solicitud.hora_fin)}</p>
+                </div>
+              )}
+              {esPermisoHoras && (
+                <div>
+                  <p className="text-xs text-gray-500 uppercase">Retorno</p>
+                  <p className="font-medium text-text">
+                    {sinRetorno ? 'Sin retorno' : 'Con retorno'}
+                  </p>
                 </div>
               )}
               <div>
                 <p className="text-xs text-gray-500 uppercase">Cantidad</p>
-                <p className="font-medium text-text">{solicitud.cantidad}</p>
+                <p className="font-medium text-text">
+                  {esPermisoHoras && Number(solicitud.cantidad) <= 0
+                    ? 'Pendiente de Control'
+                    : solicitud.cantidad}
+                </p>
               </div>
               <div>
                 <p className="text-xs text-gray-500 uppercase">Motivo</p>
@@ -211,7 +251,7 @@ export default function DetalleSolicitud() {
           </Card>
 
           {solicitud.tipo?.unidad_medida === 'HORAS' &&
-            ['APROBADA_RRHH', 'EN_CURSO', 'EJECUTADA'].includes(solicitud.estado) && (
+            ['APROBADA', 'APROBADA_RRHH', 'EN_CURSO', 'EJECUTADA'].includes(solicitud.estado) && (
               <Card>
                 <h2 className="text-lg font-semibold text-text mb-4">Código de papeleta</h2>
                 {solicitud.token_codigo ? (
@@ -353,18 +393,52 @@ export default function DetalleSolicitud() {
               value={correccion.fecha_fin}
               onChange={(e) => setCorreccion({ ...correccion, fecha_fin: e.target.value })}
             />
-            <Input
-              label="Hora inicio"
-              type="time"
-              value={correccion.hora_inicio}
-              onChange={(e) => setCorreccion({ ...correccion, hora_inicio: e.target.value })}
-            />
-            <Input
-              label="Hora fin"
-              type="time"
-              value={correccion.hora_fin}
-              onChange={(e) => setCorreccion({ ...correccion, hora_fin: e.target.value })}
-            />
+            {esPermisoHoras ? (
+              <div className="md:col-span-2">
+                <label className="label">¿El servidor retornará?</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setCorreccion({ ...correccion, con_retorno: true })}
+                    className={`text-left p-4 rounded-xl border-2 transition-colors ${
+                      correccion.con_retorno
+                        ? 'border-primary-500 bg-primary-50/70'
+                        : 'border-border bg-card hover:border-primary-300'
+                    }`}
+                  >
+                    <p className="font-semibold text-text">Con retorno</p>
+                    <p className="text-sm text-text-muted mt-1">Control registrará salida y retorno.</p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCorreccion({ ...correccion, con_retorno: false })}
+                    className={`text-left p-4 rounded-xl border-2 transition-colors ${
+                      !correccion.con_retorno
+                        ? 'border-primary-500 bg-primary-50/70'
+                        : 'border-border bg-card hover:border-primary-300'
+                    }`}
+                  >
+                    <p className="font-semibold text-text">Sin retorno</p>
+                    <p className="text-sm text-text-muted mt-1">Control cerrará el permiso manualmente.</p>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <Input
+                  label="Hora inicio"
+                  type="time"
+                  value={correccion.hora_inicio}
+                  onChange={(e) => setCorreccion({ ...correccion, hora_inicio: e.target.value })}
+                />
+                <Input
+                  label="Hora fin"
+                  type="time"
+                  value={correccion.hora_fin}
+                  onChange={(e) => setCorreccion({ ...correccion, hora_fin: e.target.value })}
+                />
+              </>
+            )}
             <div className="md:col-span-2">
               <TextArea
                 label="Motivo"

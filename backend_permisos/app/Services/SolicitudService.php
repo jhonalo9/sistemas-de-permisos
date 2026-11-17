@@ -46,6 +46,8 @@ class SolicitudService
                 'hora_inicio'   => $datos['hora_inicio'] ?? null,
                 'hora_fin'      => $datos['hora_fin'] ?? null,
                 'cantidad'      => $datos['cantidad'] ?? 0,
+                'con_retorno'   => array_key_exists('con_retorno', $datos)
+                    ? (int) (bool) $datos['con_retorno'] : null,
                 'entrega_cargo' => ! empty($datos['entrega_cargo']) ? 1 : 0,
                 'motivo'        => $datos['motivo'] ?? null,
                 'lugar_comision' => ! empty($datos['lugar_comision']) ? $datos['lugar_comision'] : null,
@@ -83,7 +85,7 @@ class SolicitudService
         $db->transBegin();
         try {
             $update = [];
-            foreach (['id_tipo', 'fecha_inicio', 'fecha_fin', 'fecha_fin_base', 'hora_inicio', 'hora_fin', 'motivo', 'lugar_comision', 'cantidad', 'entrega_cargo'] as $campo) {
+            foreach (['id_tipo', 'fecha_inicio', 'fecha_fin', 'fecha_fin_base', 'hora_inicio', 'hora_fin', 'motivo', 'lugar_comision', 'cantidad', 'con_retorno', 'entrega_cargo'] as $campo) {
                 if (array_key_exists($campo, $datos)) {
                     $valor = $datos[$campo];
                     $update[$campo] = ($valor === '' || $valor === null) ? null : $valor;
@@ -128,10 +130,7 @@ class SolicitudService
         if (empty($s['motivo'])) {
             throw new \RuntimeException('Debe indicar el motivo de la solicitud.');
         }
-        if ($tipo['unidad_medida'] === 'HORAS' && (empty($s['hora_inicio']) || empty($s['hora_fin']))) {
-            throw new \RuntimeException('Debe indicar la hora de salida y retorno.');
-        }
-        if ((float) $s['cantidad'] <= 0) {
+        if ($tipo['unidad_medida'] !== 'HORAS' && (float) $s['cantidad'] <= 0) {
             throw new \RuntimeException('La cantidad calculada debe ser mayor que cero.');
         }
         if (! empty($tipo['requiere_sustento']) && $this->contarAdjuntos($idSolicitud) < 1) {
@@ -228,7 +227,7 @@ class SolicitudService
             ->join('permiso_tipo_solicitud t', 't.id_tipo = s.id_tipo')
             ->where('s.id_servidor', $idServidor)
             ->whereIn('s.estado', [
-                'PENDIENTE', 'OBSERVADA', 'APROBADA_JEFE', 'APROBADA_RRHH',
+                'PENDIENTE', 'OBSERVADA', 'APROBADA_JEFE', 'APROBADA', 'APROBADA_RRHH',
                 'PENDIENTE_GERENCIA', 'REGULARIZAR', 'EN_CURSO', 'EJECUTADA',
             ])
             ->where('s.fecha_inicio <=', $fechaFin)
@@ -422,7 +421,7 @@ class SolicitudService
             ->where('s.id_servidor', $idServidor)
             ->where('s.id_tipo', $idTipo)
             ->whereIn('s.estado', [
-                'PENDIENTE', 'OBSERVADA', 'APROBADA_JEFE', 'APROBADA_RRHH',
+                'PENDIENTE', 'OBSERVADA', 'APROBADA_JEFE', 'APROBADA', 'APROBADA_RRHH',
                 'PENDIENTE_GERENCIA', 'REGULARIZAR', 'EN_CURSO', 'EJECUTADA',
             ]);
 

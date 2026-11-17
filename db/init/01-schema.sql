@@ -107,6 +107,7 @@ CREATE TABLE permiso_solicitud_papeleta (
   hora_inicio                 TIME NULL,
   hora_fin                    TIME NULL,
   cantidad                    DECIMAL(6,2) NOT NULL DEFAULT 0,
+  con_retorno                 TINYINT(1) NULL,
   entrega_cargo               TINYINT(1) NOT NULL DEFAULT 0,
   motivo                      TEXT NULL,
   lugar_comision              VARCHAR(150) NULL,
@@ -137,7 +138,7 @@ CREATE TABLE permiso_solicitud_papeleta (
     REFERENCES permiso_usuario(id_usuario),
   CONSTRAINT ck_sol_estado CHECK (estado IN
     ('BORRADOR','REGULARIZAR','PENDIENTE','OBSERVADA','APROBADA_JEFE',
-     'APROBADA_RRHH','PENDIENTE_GERENCIA','EN_CURSO','RECHAZADA','ANULADA','EJECUTADA')),
+     'APROBADA','APROBADA_RRHH','PENDIENTE_GERENCIA','EN_CURSO','RECHAZADA','ANULADA','EJECUTADA')),
   CONSTRAINT ck_sol_cantidad CHECK (cantidad >= 0),
   CONSTRAINT ck_sol_urgente_limite
     CHECK (es_urgente = 0 OR fecha_limite_regularizacion IS NOT NULL),
@@ -195,7 +196,7 @@ CREATE TABLE permiso_marcacion_control (
   CONSTRAINT fk_marc_usr FOREIGN KEY (id_usuario_control)
     REFERENCES permiso_usuario(id_usuario),
   CONSTRAINT uq_marc_sol_tipo UNIQUE (id_solicitud, tipo),
-  CONSTRAINT ck_marc_tipo   CHECK (tipo   IN ('SALIDA','RETORNO')),
+  CONSTRAINT ck_marc_tipo   CHECK (tipo   IN ('SALIDA','RETORNO','CIERRE')),
   CONSTRAINT ck_marc_origen CHECK (origen IN ('LECTOR','MANUAL','EMERGENCIA')),
   CONSTRAINT ck_marc_obs    CHECK (origen = 'LECTOR' OR observacion IS NOT NULL)
 ) ENGINE=InnoDB;

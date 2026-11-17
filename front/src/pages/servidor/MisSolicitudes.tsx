@@ -15,7 +15,7 @@ export default function MisSolicitudes() {
 
   const estados = [
     'BORRADOR', 'REGULARIZAR', 'PENDIENTE', 'OBSERVADA', 'APROBADA_JEFE',
-    'APROBADA_RRHH', 'PENDIENTE_GERENCIA', 'EN_CURSO', 'RECHAZADA', 'ANULADA', 'EJECUTADA',
+    'APROBADA', 'APROBADA_RRHH', 'PENDIENTE_GERENCIA', 'EN_CURSO', 'RECHAZADA', 'ANULADA', 'EJECUTADA',
   ];
 
   React.useEffect(() => {

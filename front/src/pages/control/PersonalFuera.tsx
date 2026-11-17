@@ -1,27 +1,50 @@
 import React from 'react';
 import { apiClient } from '@/services/api';
-import { Card, Badge, useToast } from '@/components/common';
-import { unidadLabel, asBool } from '@/utils/format';
+import { Button, Card, Badge, useToast } from '@/components/common';
+import { asBool } from '@/utils/format';
 import { Clock } from 'lucide-react';
 
 export default function PersonalFuera() {
   const { toast } = useToast();
   const [fuera, setFuera] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
+  const [cerrando, setCerrando] = React.useState<number | null>(null);
+
+  const cargar = React.useCallback(async () => {
+    try {
+      const res = await apiClient<any>('/marcaciones/fuera');
+      setFuera(res.data || []);
+    } catch (e: any) {
+      toast.error('Error al cargar personal fuera', e.mensaje);
+    } finally {
+      setLoading(false);
+    }
+  }, [toast]);
 
   React.useEffect(() => {
-    const cargar = async () => {
-      try {
-        const res = await apiClient<any>('/marcaciones/fuera');
-        setFuera(res.data || []);
-      } catch (e: any) {
-        toast.error('Error al cargar personal fuera', e.mensaje);
-      } finally {
-        setLoading(false);
-      }
-    };
     cargar();
-  }, []);
+  }, [cargar]);
+
+  const cerrarSinRetorno = async (registro: any) => {
+    const confirmado = window.confirm(
+      `¿Cerrar el permiso de ${registro.servidor} sin retorno? Se calculará el tiempo hasta este momento.`
+    );
+    if (!confirmado) return;
+
+    setCerrando(Number(registro.id_solicitud));
+    try {
+      const res = await apiClient<any>(
+        `/marcaciones/${registro.id_solicitud}/cerrar-sin-retorno`,
+        { method: 'POST', body: { observacion: 'Cierre manual sin retorno desde Control.' } }
+      );
+      toast.success('Permiso cerrado', res.mensaje || 'El permiso se cerró sin retorno.');
+      await cargar();
+    } catch (e: any) {
+      toast.error('No se pudo cerrar', e?.mensaje || 'Verifique el estado del permiso.');
+    } finally {
+      setCerrando(null);
+    }
+  };
 
   if (loading) {
     return (
@@ -52,31 +75,60 @@ export default function PersonalFuera() {
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Hora salida</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Minutos fuera</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Tipo</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Retorno</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Alerta</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Acción</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {fuera.map((p, i) => (
-                <tr key={i} className={`hover:bg-gray-50 ${asBool(p.es_urgente) ? 'bg-red-50' : ''}`}>
-                  <td className="px-4 py-3 text-sm font-medium text-text">{p.servidor}</td>
-                  <td className="px-4 py-3 text-sm text-text">{p.unidad || '—'}</td>
-                  <td className="px-4 py-3 text-sm text-text">{p.hora_salida || '—'}</td>
-                  <td className="px-4 py-3 text-sm text-text">{p.minutos_fuera || '—'} min</td>
-                  <td className="px-4 py-3 text-sm">
-                    <Badge
-                      estado={asBool(p.es_urgente) ? 'REGULARIZAR' : 'EN_CURSO'}
-                    />
-                  </td>
-                  <td className="px-4 py-3 text-sm">
-                    {asBool(p.es_urgente) && (
-                      <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded">SIN RETORNO</span>
-                    )}
-                    {!asBool(p.es_urgente) && (
-                      <span className="text-xs text-gray-400">—</span>
-                    )}
-                  </td>
-                </tr>
-              ))}
+              {fuera.map((p, i) => {
+                const sinRetorno = Number(p.con_retorno) === 0;
+                return (
+                  <tr key={i} className={`hover:bg-gray-50 ${asBool(p.es_urgente) ? 'bg-red-50' : ''}`}>
+                    <td className="px-4 py-3 text-sm font-medium text-text">{p.servidor}</td>
+                    <td className="px-4 py-3 text-sm text-text">{p.unidad || '—'}</td>
+                    <td className="px-4 py-3 text-sm text-text">{p.hora_salida || '—'}</td>
+                    <td className="px-4 py-3 text-sm text-text">
+                      <span className="inline-flex items-center gap-1">
+                        <Clock className="w-3.5 h-3.5 text-gray-400" />
+                        {p.minutos_fuera ?? '—'} min
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-sm">
+                      <Badge estado={asBool(p.es_urgente) ? 'REGULARIZAR' : 'EN_CURSO'} />
+                    </td>
+                    <td className="px-4 py-3 text-sm">
+                      {sinRetorno ? (
+                        <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded">
+                          SIN RETORNO
+                        </span>
+                      ) : (
+                        <span className="text-xs text-gray-500">Con retorno</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-sm">
+                      {asBool(p.es_urgente) ? (
+                        <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded">URGENTE</span>
+                      ) : (
+                        <span className="text-xs text-gray-400">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      {sinRetorno ? (
+                        <Button
+                          variant="outline"
+                          onClick={() => cerrarSinRetorno(p)}
+                          disabled={cerrando === Number(p.id_solicitud)}
+                        >
+                          {cerrando === Number(p.id_solicitud) ? 'Cerrando...' : 'Cerrar sin retorno'}
+                        </Button>
+                      ) : (
+                        <span className="text-xs text-gray-400">Esperando retorno</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

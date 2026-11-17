@@ -6,6 +6,7 @@ export type EstadoSolicitud =
   | 'PENDIENTE'
   | 'OBSERVADA'
   | 'APROBADA_JEFE'
+  | 'APROBADA'
   | 'APROBADA_RRHH'
   | 'PENDIENTE_GERENCIA'
   | 'EN_CURSO'

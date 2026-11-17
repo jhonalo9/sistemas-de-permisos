@@ -40,6 +40,21 @@ class MarcacionesController extends BaseApiController
         }
     }
 
+    public function cerrarSinRetorno(int $id)
+    {
+        $d = $this->datos();
+        try {
+            $res = (new MarcacionService())->cerrarSinRetorno(
+                $id,
+                $this->idUsuario(),
+                $d['observacion'] ?? null
+            );
+            return ApiResponse::ok($res, 200, ['mensaje' => 'Permiso cerrado sin retorno.']);
+        } catch (\Throwable $e) {
+            return ApiResponse::error($e->getMessage(), 422);
+        }
+    }
+
     public function emergencia()
     {
         $d = $this->datos();

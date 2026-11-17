@@ -85,6 +85,7 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], static function ($
         $r->group('marcaciones', ['filter' => 'role:CONTROL,RRHH,ADMIN'], static function ($r) {
             $r->post('registrar',    'MarcacionesController::registrar');
             $r->post('manual',       'MarcacionesController::manual');
+            $r->post('(:num)/cerrar-sin-retorno', 'MarcacionesController::cerrarSinRetorno/$1');
             $r->post('emergencia',   'MarcacionesController::emergencia');
             $r->get('emergencias',   'MarcacionesController::emergencias');
             $r->get('fuera',         'MarcacionesController::fueraAhora');

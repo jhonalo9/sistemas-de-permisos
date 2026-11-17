@@ -167,7 +167,9 @@ class RrhhController extends BaseApiController
         $db = db_connect();
         $s = $db->table('permiso_solicitud_papeleta')->where('id_solicitud', $id)->get()->getRowArray();
         if (! $s) return ApiResponse::error('Solicitud no encontrada.', 404);
-        if ($s['estado'] !== 'APROBADA_RRHH') return ApiResponse::error('Solo se genera token de una papeleta aprobada.', 422);
+        if (! in_array($s['estado'], ['APROBADA_RRHH', 'APROBADA'], true)) {
+            return ApiResponse::error('Solo se genera token de una papeleta aprobada.', 422);
+        }
 
         $token = strtoupper(bin2hex(random_bytes(8)));   // 16 hex chars
         $db->table('permiso_solicitud_papeleta')->where('id_solicitud', $id)->update(['token_codigo' => $token]);
@@ -183,8 +185,10 @@ class RrhhController extends BaseApiController
             ->get()->getRowArray();
 
         if (! $s) return ApiResponse::error('Solicitud no encontrada.', 404);
-        if ($s['estado'] !== 'APROBADA_RRHH') {
-            return ApiResponse::error('Solo se genera papeleta de una solicitud aprobada por RRHH.', 422);
+        $estadoPermitido = in_array($s['estado'], ['APROBADA_RRHH', 'EN_CURSO', 'EJECUTADA'], true)
+            || ($s['estado'] === 'APROBADA' && $s['unidad_medida'] === 'HORAS');
+        if (! $estadoPermitido) {
+            return ApiResponse::error('Solo se genera papeleta de una solicitud aprobada.', 422);
         }
         if ($s['unidad_medida'] !== 'HORAS' && $s['codigo'] !== 'PER_COMISION_SERVICIO') {
             return ApiResponse::error('La papeleta solo aplica a permisos por horas o comisión de servicio.', 422);

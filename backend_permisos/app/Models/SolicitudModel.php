@@ -13,7 +13,7 @@ class SolicitudModel extends Model
         'nro_solicitud','id_servidor','id_tipo','id_jefe_solicitud',
         'id_unidad_solicitud','id_cargo_solicitud','fecha_inicio','fecha_fin',
         'fecha_fin_base',
-        'hora_inicio','hora_fin','cantidad','entrega_cargo','motivo','lugar_comision',
+        'hora_inicio','hora_fin','cantidad','con_retorno','entrega_cargo','motivo','lugar_comision',
         'estado','token_codigo',
         'es_urgente','fecha_limite_regularizacion','tiempo_empleado_min',
         'mision_cumplida','id_usuario_visa','fecha_visa','nro_resolucion','fecha_resolucion',

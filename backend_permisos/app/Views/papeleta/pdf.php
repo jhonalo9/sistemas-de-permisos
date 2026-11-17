@@ -7,30 +7,38 @@
  */
 $copias = ['ORIGINAL', 'COPIA'];
 $anio = date('Y', strtotime($s['fecha_inicio']));
-$esPorDias = empty($s['hora_inicio']) && empty($s['hora_fin']);
-$horaSalida = ! empty($s['hora_inicio'])
-    ? substr((string) $s['hora_inicio'], 0, 5)
-    : ($esPorDias ? date('d/m/Y', strtotime((string) $s['fecha_inicio'])) : '');
-$horaRetorno = ! empty($s['hora_fin'])
-    ? substr((string) $s['hora_fin'], 0, 5)
-    : ($esPorDias ? date('d/m/Y', strtotime((string) $s['fecha_fin'])) : '');
+$esPorDias = ($s['unidad_medida'] ?? '') === 'DIAS';
+$conRetorno = ! isset($s['con_retorno']) || (int) $s['con_retorno'] === 1;
+$salidaMarc  = $s['marcacion_salida'] ?? null;
+$retornoMarc = $s['marcacion_retorno'] ?? null;
+$cierreMarc  = $s['marcacion_cierre'] ?? null;
+
+if ($esPorDias) {
+    $horaSalida  = date('d/m/Y', strtotime((string) $s['fecha_inicio']));
+    $horaRetorno = date('d/m/Y', strtotime((string) $s['fecha_fin']));
+} else {
+    $horaSalida = $salidaMarc
+        ? date('H:i', strtotime($salidaMarc))
+        : 'PENDIENTE';
+    $horaRetorno = ! $conRetorno
+        ? 'SIN RETORNO'
+        : ($retornoMarc ? date('H:i', strtotime($retornoMarc)) : 'PENDIENTE');
+}
 
 $minutos = null;
 if ($s['tiempo_empleado_min'] !== null && (float) $s['tiempo_empleado_min'] > 0) {
     $minutos = (float) $s['tiempo_empleado_min'];
-} elseif (! $esPorDias && $horaSalida !== '' && $horaRetorno !== '') {
-    [$hi, $mi] = array_map('intval', explode(':', $horaSalida));
-    [$hf, $mf] = array_map('intval', explode(':', $horaRetorno));
-    $minutos = ($hf * 60 + $mf) - ($hi * 60 + $mi);
-    if ($minutos < 0) {
-        $minutos += 24 * 60;
+} elseif (! $esPorDias && $salidaMarc) {
+    $finMarc = $retornoMarc ?: $cierreMarc;
+    if ($finMarc) {
+        $minutos = max(0, (strtotime($finMarc) - strtotime($salidaMarc)) / 60);
     }
 }
 
 $tiempo = '';
 if ($esPorDias) {
     $tiempo = rtrim(rtrim(number_format((float) $s['cantidad'], 2, '.', ''), '0'), '.') . ' día(s)';
-} elseif ($minutos !== null && $minutos > 0) {
+} elseif ($minutos !== null) {
     $minutos = (int) round($minutos);
     $horas = intdiv($minutos, 60);
     $resto = $minutos % 60;
@@ -38,9 +46,13 @@ if ($esPorDias) {
         $tiempo = $horas . ' h ' . $resto . ' min';
     } elseif ($horas > 0) {
         $tiempo = $horas . ' h';
-    } else {
+    } elseif ($resto > 0) {
         $tiempo = $resto . ' min';
+    } else {
+        $tiempo = '0 min';
     }
+} else {
+    $tiempo = 'PENDIENTE DE REGISTRO';
 }
 
 $fechaEmision = date('d/m/Y');
@@ -191,7 +203,7 @@ $funcionario = $s['jefe'] ?? '';
       <tr>
         <td style="width:55%;"><span class="label">NOMBRE DEL FUNCIONARIO :</span> <span class="value"><?= esc($funcionario) ?></span></td>
         <td style="width:20%;"><span class="label red"><?= $esPorDias ? 'FECHA DE SALIDA' : 'HORA DE SALIDA' ?> :</span> <span class="value"><?= esc($horaSalida) ?></span></td>
-        <td style="width:25%;"><span class="label red"><?= $esPorDias ? 'FECHA DE RETORNO' : 'HORA DE RETORNO' ?> :</span> <span class="value"><?= esc($horaRetorno) ?></span></td>
+        <td style="width:25%;"><span class="label red"><?= $esPorDias ? 'FECHA DE RETORNO' : (! $conRetorno ? 'RETORNO' : 'HORA DE RETORNO') ?> :</span> <span class="value"><?= esc($horaRetorno) ?></span></td>
       </tr>
       <tr>
         <td colspan="3"><span class="label">TIEMPO EMPLEADO :</span> <span class="value"><?= $tiempo ?></span></td>

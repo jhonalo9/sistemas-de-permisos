@@ -11,7 +11,7 @@ class PapeletaPdf
     {
         $db = db_connect();
         $s = $db->table('permiso_solicitud_papeleta s')
-            ->select('s.*, t.nombre AS tipo_nombre, t.categoria,
+            ->select('s.*, t.nombre AS tipo_nombre, t.categoria, t.unidad_medida,
                       CONCAT(sv.apellidos, ", ", sv.nombres) AS servidor,
                       sv.dni, c.nombre AS cargo, u.nombre AS unidad,
                       CONCAT(j.apellidos, ", ", j.nombres) AS jefe')
@@ -24,6 +24,19 @@ class PapeletaPdf
 
         if (! $s) return null;
         if (empty($s['token_codigo'])) return null;
+
+        $marcaciones = $db->table('permiso_marcacion_control')
+            ->where('id_solicitud', $idSolicitud)
+            ->get()->getResultArray();
+
+        $s['marcacion_salida']  = null;
+        $s['marcacion_retorno'] = null;
+        $s['marcacion_cierre']  = null;
+        foreach ($marcaciones as $m) {
+            if ($m['tipo'] === 'SALIDA')  $s['marcacion_salida']  = $m['fecha_hora'];
+            if ($m['tipo'] === 'RETORNO') $s['marcacion_retorno'] = $m['fecha_hora'];
+            if ($m['tipo'] === 'CIERRE')  $s['marcacion_cierre']  = $m['fecha_hora'];
+        }
 
         $barcode = $this->barcodeHtml($s['token_codigo']);
         $esEmergencia = (int) $s['es_urgente'] === 1;

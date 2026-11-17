@@ -9,21 +9,40 @@ export default function NoVolvieron() {
   const [registros, setRegistros] = React.useState<any[]>([]);
   const [horaCorte, setHoraCorte] = React.useState('17:00');
   const [loading, setLoading] = React.useState(true);
+  const [cerrando, setCerrando] = React.useState<number | null>(null);
+
+  const cargar = React.useCallback(async () => {
+    try {
+      const res = await apiClient<any>('/marcaciones/no-volvieron');
+      setRegistros(res.data || []);
+      setHoraCorte((res as any).hora_corte || '17:00');
+    } catch (e: any) {
+      toast.error('Error al cargar no volvieron', e.mensaje);
+    } finally {
+      setLoading(false);
+    }
+  }, [toast]);
 
   React.useEffect(() => {
-    const cargar = async () => {
-      try {
-        const res = await apiClient<any>('/marcaciones/no-volvieron');
-        setRegistros(res.data || []);
-        setHoraCorte((res as any).hora_corte || '17:00');
-      } catch (e: any) {
-        toast.error('Error al cargar no volvieron', e.mensaje);
-      } finally {
-        setLoading(false);
-      }
-    };
     cargar();
-  }, []);
+  }, [cargar]);
+
+  const cerrarSinRetorno = async (r: any) => {
+    if (!window.confirm(`¿Cerrar el permiso de ${r.servidor} sin retorno?`)) return;
+    setCerrando(Number(r.id_solicitud));
+    try {
+      const res = await apiClient<any>(`/marcaciones/${r.id_solicitud}/cerrar-sin-retorno`, {
+        method: 'POST',
+        body: { observacion: 'Cierre manual sin retorno al cierre de jornada.' },
+      });
+      toast.success('Permiso cerrado', res.mensaje || 'El permiso se cerró sin retorno.');
+      await cargar();
+    } catch (e: any) {
+      toast.error('No se pudo cerrar', e?.mensaje || 'Verifique el estado del permiso.');
+    } finally {
+      setCerrando(null);
+    }
+  };
 
   const registrarAbandono = async (r: any) => {
     if (!window.confirm(`¿Registrar abandono para ${r.servidor}?`)) return;
@@ -118,9 +137,20 @@ export default function NoVolvieron() {
                     <Badge estado={asBool(r.es_urgente) ? 'REGULARIZAR' : 'EN_CURSO'} />
                   </td>
                   <td className="px-4 py-3">
-                    <Button variant="outline" onClick={() => registrarAbandono(r)}>
-                      Registrar abandono
-                    </Button>
+                    <div className="flex flex-col gap-2">
+                      {Number(r.con_retorno) === 0 && (
+                        <Button
+                          variant="outline"
+                          onClick={() => cerrarSinRetorno(r)}
+                          disabled={cerrando === Number(r.id_solicitud)}
+                        >
+                          {cerrando === Number(r.id_solicitud) ? 'Cerrando...' : 'Cerrar sin retorno'}
+                        </Button>
+                      )}
+                      <Button variant="outline" onClick={() => registrarAbandono(r)}>
+                        Registrar abandono
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               ))}

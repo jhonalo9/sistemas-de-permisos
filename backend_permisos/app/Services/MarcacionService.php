@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\SolicitudModel;
 use App\Models\MarcacionModel;
 use App\Models\HistorialModel;
+use App\Models\SaldoModel;
 
 class MarcacionService
 {
@@ -12,6 +13,7 @@ class MarcacionService
         private readonly SolicitudModel $solicitudes = new SolicitudModel(),
         private readonly MarcacionModel $marcaciones = new MarcacionModel(),
         private readonly HistorialModel $historial   = new HistorialModel(),
+        private readonly SaldoModel     $saldos      = new SaldoModel(),
     ) {}
 
     /**
@@ -25,7 +27,7 @@ class MarcacionService
         $db = db_connect();
 
         $solicitud = $db->table('permiso_solicitud_papeleta s')
-            ->select('s.*, t.categoria, t.nombre AS tipo_nombre')
+            ->select('s.*, t.categoria, t.unidad_medida, t.nombre AS tipo_nombre')
             ->join('permiso_tipo_solicitud t', 't.id_tipo = s.id_tipo')
             ->groupStart()
                 ->where('s.token_codigo', $codigo)
@@ -36,24 +38,35 @@ class MarcacionService
         if (! $solicitud) throw new \RuntimeException('Código de papeleta no válido.');
 
         $tieneSalida  = $this->marcaciones->existeTipo((int) $solicitud['id_solicitud'], 'SALIDA');
-        $tieneRetorno = $this->marcaciones->existeTipo((int) $solicitud['id_solicitud'], 'RETORNO');
+        $tieneRetorno = $this->marcaciones->existeTipo((int) $solicitud['id_solicitud'], 'RETORNO')
+            || $this->marcaciones->existeTipo((int) $solicitud['id_solicitud'], 'CIERRE');
 
         if ($tieneSalida && $tieneRetorno) {
             throw new \RuntimeException('Esta papeleta ya tiene salida y retorno registrados.');
         }
 
         $accion = $tieneSalida ? 'RETORNO' : 'SALIDA';
+        $esPorHoras = ($solicitud['unidad_medida'] ?? '') === 'HORAS';
 
         if ($accion === 'SALIDA') {
             if ($solicitud['categoria'] !== 'PERMISO') {
                 throw new \RuntimeException('Este tipo es una licencia por días: no requiere marcación.');
             }
-            if ($solicitud['estado'] !== 'APROBADA_RRHH') {
+            if (! in_array($solicitud['estado'], ['APROBADA', 'APROBADA_RRHH'], true)) {
                 throw new \RuntimeException('La papeleta está en estado ' . $solicitud['estado'] . '.');
             }
             $hoy = date('Y-m-d');
             if ($hoy < $solicitud['fecha_inicio'] || $hoy > $solicitud['fecha_fin']) {
                 throw new \RuntimeException('La papeleta no está autorizada para hoy.');
+            }
+        }
+
+        if ($accion === 'RETORNO') {
+            if (isset($solicitud['con_retorno']) && (int) $solicitud['con_retorno'] === 0) {
+                throw new \RuntimeException('Este permiso fue registrado sin retorno. Use la opción "Cerrar sin retorno".');
+            }
+            if ($solicitud['estado'] !== 'EN_CURSO') {
+                throw new \RuntimeException('La papeleta no está en curso.');
             }
         }
 
@@ -72,24 +85,49 @@ class MarcacionService
                 $this->solicitudes->update($solicitud['id_solicitud'], ['estado' => 'EN_CURSO']);
                 $this->historial->insert([
                     'id_solicitud' => $solicitud['id_solicitud'],
-                    'estado_ant'   => 'APROBADA_RRHH',
+                    'estado_ant'   => $solicitud['estado'],
                     'estado_new'   => 'EN_CURSO',
                     'id_usuario'   => $idUsuario,
                     'comentario'   => 'Salida registrada en Control de Personal.',
                 ]);
             } else {
                 $salida = $this->marcaciones->horaSalida((int) $solicitud['id_solicitud']);
-                $min = $salida ? (int) round((time() - strtotime($salida)) / 60) : null;
-                $this->solicitudes->update($solicitud['id_solicitud'], [
+                $min = $salida ? max(0, (int) round((time() - strtotime($salida)) / 60)) : null;
+                $horas = $min !== null ? round($min / 60, 2) : null;
+
+                $update = [
                     'tiempo_empleado_min' => $min,
+                    'hora_inicio'         => $salida ? date('H:i:s', strtotime($salida)) : null,
+                    'hora_fin'            => date('H:i:s'),
                     'estado'              => 'EJECUTADA',
-                ]);
+                ];
+                if ($esPorHoras && $horas !== null) {
+                    $update['cantidad'] = $horas;
+                }
+
+                $this->solicitudes->update($solicitud['id_solicitud'], $update);
+
+                if ($esPorHoras && $horas !== null) {
+                    $anio = (int) substr((string) $solicitud['fecha_inicio'], 0, 4);
+                    $this->saldos->consumir(
+                        (int) $solicitud['id_servidor'],
+                        (int) $solicitud['id_tipo'],
+                        $anio,
+                        $horas
+                    );
+                }
+
+                $comentario = 'Retorno registrado en Control de Personal.';
+                if ($horas !== null) {
+                    $comentario .= ' Tiempo real: ' . rtrim(rtrim(number_format($horas, 2, '.', ''), '0'), '.') . ' hora(s).';
+                }
+
                 $this->historial->insert([
                     'id_solicitud' => $solicitud['id_solicitud'],
                     'estado_ant'   => 'EN_CURSO',
                     'estado_new'   => 'EJECUTADA',
                     'id_usuario'   => $idUsuario,
-                    'comentario'   => 'Retorno registrado en Control de Personal.',
+                    'comentario'   => $comentario,
                 ]);
             }
             $db->transCommit();
@@ -129,6 +167,98 @@ class MarcacionService
                 'tipo'                => $solicitud['tipo_nombre'],
                 'fecha_hora'          => $marcacion['fecha_hora'],
                 'tiempo_empleado_min' => $actual['tiempo_empleado_min'] ?? null,
+                'cantidad'            => $actual['cantidad'] ?? null,
+            ];
+        } catch (\Throwable $e) {
+            $db->transRollback();
+            throw $e;
+        }
+    }
+
+    /**
+     * Cierra manualmente un permiso marcado como "sin retorno".
+     */
+    public function cerrarSinRetorno(int $idSolicitud, int $idUsuario, ?string $observacion = null): array
+    {
+        $db = db_connect();
+
+        $solicitud = $db->table('permiso_solicitud_papeleta s')
+            ->select('s.*, t.categoria, t.unidad_medida, t.nombre AS tipo_nombre')
+            ->join('permiso_tipo_solicitud t', 't.id_tipo = s.id_tipo')
+            ->where('s.id_solicitud', $idSolicitud)
+            ->get()->getRowArray();
+
+        if (! $solicitud) throw new \RuntimeException('Solicitud no encontrada.');
+        if (($solicitud['categoria'] ?? '') !== 'PERMISO') {
+            throw new \RuntimeException('Solo los permisos requieren cierre en Control.');
+        }
+        if ((int) ($solicitud['con_retorno'] ?? 1) !== 0) {
+            throw new \RuntimeException('Este permiso tiene retorno; registre el retorno con el lector.');
+        }
+        if ($solicitud['estado'] !== 'EN_CURSO') {
+            throw new \RuntimeException('El permiso no está en curso.');
+        }
+        if ($this->marcaciones->existeTipo($idSolicitud, 'RETORNO')
+            || $this->marcaciones->existeTipo($idSolicitud, 'CIERRE')) {
+            throw new \RuntimeException('El permiso ya fue cerrado.');
+        }
+
+        $salida = $this->marcaciones->horaSalida($idSolicitud);
+        if (! $salida) throw new \RuntimeException('No existe una salida registrada.');
+
+        $min = max(0, (int) round((time() - strtotime($salida)) / 60));
+        $horas = round($min / 60, 2);
+        $esPorHoras = ($solicitud['unidad_medida'] ?? '') === 'HORAS';
+
+        $db->transBegin();
+        try {
+            $this->marcaciones->insert([
+                'id_solicitud'       => $idSolicitud,
+                'tipo'               => 'CIERRE',
+                'origen'             => 'MANUAL',
+                'id_usuario_control' => $idUsuario,
+                'observacion'        => $observacion ?: 'Cierre manual sin retorno.',
+            ]);
+
+            $update = [
+                'tiempo_empleado_min' => $min,
+                'hora_inicio'         => date('H:i:s', strtotime($salida)),
+                'hora_fin'            => date('H:i:s'),
+                'estado'              => 'EJECUTADA',
+            ];
+            if ($esPorHoras) {
+                $update['cantidad'] = $horas;
+            }
+
+            $this->solicitudes->update($idSolicitud, $update);
+
+            if ($esPorHoras) {
+                $anio = (int) substr((string) $solicitud['fecha_inicio'], 0, 4);
+                $this->saldos->consumir(
+                    (int) $solicitud['id_servidor'],
+                    (int) $solicitud['id_tipo'],
+                    $anio,
+                    $horas
+                );
+            }
+
+            $this->historial->insert([
+                'id_solicitud' => $idSolicitud,
+                'estado_ant'   => 'EN_CURSO',
+                'estado_new'   => 'EJECUTADA',
+                'id_usuario'   => $idUsuario,
+                'comentario'   => 'Permiso cerrado sin retorno en Control de Personal.',
+            ]);
+
+            $db->transCommit();
+
+            return [
+                'exito'               => true,
+                'nro_solicitud'       => $solicitud['nro_solicitud'],
+                'accion_registrada'   => 'CIERRE',
+                'tipo'                => $solicitud['tipo_nombre'],
+                'tiempo_empleado_min' => $min,
+                'cantidad'            => $esPorHoras ? $horas : $solicitud['cantidad'],
             ];
         } catch (\Throwable $e) {
             $db->transRollback();

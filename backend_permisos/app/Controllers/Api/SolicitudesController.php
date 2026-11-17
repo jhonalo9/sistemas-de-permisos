@@ -48,6 +48,7 @@ class SolicitudesController extends BaseApiController
         try {
             $datos = $this->aplicarInicioHabil($tipo, $datos);
             $datos = $this->aplicarCondiciones($tipo, $datos);
+            $datos = $this->normalizarHoras($tipo, $datos);
         } catch (\RuntimeException $e) {
             return ApiResponse::error($e->getMessage(), 422);
         }
@@ -92,7 +93,7 @@ class SolicitudesController extends BaseApiController
         }
 
         $cantidad = $this->cantidadConCondiciones($tipo, $datos);
-        if ($cantidad <= 0) {
+        if ($cantidad <= 0 && ! $this->esPermisoHoras($tipo)) {
             return ApiResponse::error('La cantidad calculada es 0. Verifique fechas y horas.', 422);
         }
 
@@ -145,10 +146,14 @@ class SolicitudesController extends BaseApiController
         if (empty($datos['fecha_fin']) && ! empty($s['fecha_fin_base'])) {
             $datos['fecha_fin'] = $s['fecha_fin_base'];
         }
+        if (! array_key_exists('con_retorno', $datos) && array_key_exists('con_retorno', $s)) {
+            $datos['con_retorno'] = $s['con_retorno'];
+        }
 
         try {
             $datos = $this->aplicarInicioHabil($tipo, $datos);
             $datos = $this->aplicarCondiciones($tipo, $datos);
+            $datos = $this->normalizarHoras($tipo, $datos);
         } catch (\RuntimeException $e) {
             return ApiResponse::error($e->getMessage(), 422);
         }
@@ -204,10 +209,14 @@ class SolicitudesController extends BaseApiController
         if (empty($datos['fecha_fin']) && ! empty($s['fecha_fin_base'])) {
             $datos['fecha_fin'] = $s['fecha_fin_base'];
         }
+        if (! array_key_exists('con_retorno', $datos) && array_key_exists('con_retorno', $s)) {
+            $datos['con_retorno'] = $s['con_retorno'];
+        }
 
         try {
             $datos = $this->aplicarInicioHabil($tipo, $datos);
             $datos = $this->aplicarCondiciones($tipo, $datos);
+            $datos = $this->normalizarHoras($tipo, $datos);
         } catch (\RuntimeException $e) {
             return ApiResponse::error($e->getMessage(), 422);
         }
@@ -273,7 +282,7 @@ class SolicitudesController extends BaseApiController
         if ((int) $s['id_servidor'] !== (int) $this->idServidor() && ! $this->tieneRol('ADMIN')) {
             return ApiResponse::error('No autorizado.', 403);
         }
-        if (! in_array($s['estado'], ['BORRADOR', 'PENDIENTE', 'OBSERVADA', 'APROBADA_JEFE'], true)) {
+        if (! in_array($s['estado'], ['BORRADOR', 'PENDIENTE', 'OBSERVADA', 'APROBADA_JEFE', 'APROBADA'], true)) {
             return ApiResponse::error('No se puede anular en el estado actual.', 422);
         }
         $d = $this->datos();
@@ -308,10 +317,14 @@ class SolicitudesController extends BaseApiController
         if (empty($d['fecha_fin']) && ! empty($s['fecha_fin_base'])) {
             $d['fecha_fin'] = $s['fecha_fin_base'];
         }
+        if (! array_key_exists('con_retorno', $d) && array_key_exists('con_retorno', $s)) {
+            $d['con_retorno'] = $s['con_retorno'];
+        }
 
         try {
             $d = $this->aplicarInicioHabil($tipo, $d);
             $d = $this->aplicarCondiciones($tipo, $d);
+            $d = $this->normalizarHoras($tipo, $d);
         } catch (\RuntimeException $e) {
             return ApiResponse::error($e->getMessage(), 422);
         }
@@ -325,7 +338,7 @@ class SolicitudesController extends BaseApiController
         }
 
         $cantidad = $this->cantidadConCondiciones($tipo, $merged);
-        if ($cantidad <= 0) {
+        if ($cantidad <= 0 && ! $this->esPermisoHoras($tipo)) {
             return ApiResponse::error('La cantidad calculada es 0. Verifique fechas y horas.', 422);
         }
 
@@ -355,6 +368,8 @@ class SolicitudesController extends BaseApiController
                 'hora_inicio'  => $merged['hora_inicio'] ?? null,
                 'hora_fin'     => $merged['hora_fin'] ?? null,
                 'cantidad'     => $cantidad,
+                'con_retorno'  => array_key_exists('con_retorno', $merged)
+                    ? (int) (bool) $merged['con_retorno'] : null,
                 'entrega_cargo' => ! empty($merged['entrega_cargo']) ? 1 : 0,
                 'lugar_comision' => ! empty($merged['lugar_comision']) ? $merged['lugar_comision'] : null,
                 'estado'       => 'PENDIENTE',
@@ -433,6 +448,38 @@ class SolicitudesController extends BaseApiController
         } catch (\Throwable $e) {
             return ApiResponse::error('No se pudo completar la regularización: ' . $e->getMessage(), 500);
         }
+    }
+
+    private function esPermisoHoras(array $tipo): bool
+    {
+        return ($tipo['categoria'] ?? '') === 'PERMISO'
+            && ($tipo['unidad_medida'] ?? '') === 'HORAS';
+    }
+
+    /**
+     * Los permisos por horas ya no declaran horas: Control registra la salida
+     * y el retorno. Solo se conserva la preferencia con/sin retorno.
+     */
+    private function normalizarHoras(array $tipo, array $d, $conRetornoActual = null): array
+    {
+        if (! $this->esPermisoHoras($tipo)) {
+            return $d;
+        }
+
+        $d['hora_inicio'] = null;
+        $d['hora_fin']    = null;
+
+        if (! empty($d['fecha_inicio'])) {
+            $d['fecha_fin']      = $d['fecha_inicio'];
+            $d['fecha_fin_base'] = $d['fecha_inicio'];
+        }
+
+        $valor = $d['con_retorno'] ?? $conRetornoActual;
+        $d['con_retorno'] = ($valor === null || $valor === '')
+            ? 1
+            : (int) (bool) $valor;
+
+        return $d;
     }
 
     /**
