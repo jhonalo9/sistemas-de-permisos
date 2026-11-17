@@ -607,7 +607,7 @@ export default function NuevaSolicitud({ embedded = false, onClose }: NuevaSolic
                       className="h-3"
                       color={colorUso}
                     />
-                    <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+                    {/*<div className="mt-3 grid grid-cols-3 gap-2 text-center">
                       <div className="rounded-lg bg-white/70 border border-border/60 p-2">
                         <p className="text-xs text-text-muted uppercase">Tope</p>
                         <p className="text-base font-bold text-text">{limiteUso}</p>
@@ -626,9 +626,9 @@ export default function NuevaSolicitud({ embedded = false, onClose }: NuevaSolic
                           {usoSeleccionado.disponibles ?? 0}
                         </p>
                       </div>
-                    </div>
+                    </div>*/}
                     <p className="mt-2 text-xs text-text-muted">
-                      El conteo incluye solicitudes pendientes y aprobadas.
+                      El conteo solo incluye solicitudes aprobadas.
                     </p>
                     {usoSeleccionado.alcanzado && (
                       <p className="mt-2 text-sm font-semibold text-red-700">
@@ -644,7 +644,7 @@ export default function NuevaSolicitud({ embedded = false, onClose }: NuevaSolic
                       className="h-3"
                       color={colorAnualUso}
                     />
-                    <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+                    {/*<div className="mt-3 grid grid-cols-3 gap-2 text-center">
                       <div className="rounded-lg bg-white/70 border border-border/60 p-2">
                         <p className="text-xs text-text-muted uppercase">Tope anual</p>
                         <p className="text-sm font-bold text-text">
@@ -668,7 +668,7 @@ export default function NuevaSolicitud({ embedded = false, onClose }: NuevaSolic
                           {unidadLabel(usoSeleccionado.unidad_medida)}
                         </p>
                       </div>
-                    </div>
+                    </div>*/}
                     <p className="mt-2 text-xs text-text-muted">
                       Este tipo no tiene tope mensual; se muestra su tope anual.
                     </p>

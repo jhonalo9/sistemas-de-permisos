@@ -151,8 +151,8 @@ export default function MisSaldos() {
       ) : (
         <div className="space-y-4">
           <p className="text-sm text-text-muted">
-            El conteo incluye solicitudes pendientes, observadas, aprobadas, en curso y ejecutadas.
-            No incluye borradores, rechazadas ni anuladas.
+            El conteo solo incluye solicitudes aprobadas: aprobadas por jefe, aprobadas por RRHH,
+            en curso y ejecutadas. No incluye borradores, pendientes, observadas, rechazadas ni anuladas.
           </p>
 
           {conTope.length === 0 ? (

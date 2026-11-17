@@ -18,9 +18,9 @@ class SaldoModel extends Model
         'plazo_regularizacion_dias', 'activo',
     ];
 
-    private const ESTADOS_ACTIVOS = [
-        'PENDIENTE', 'OBSERVADA', 'APROBADA_JEFE', 'APROBADA', 'APROBADA_RRHH',
-        'PENDIENTE_GERENCIA', 'REGULARIZAR', 'EN_CURSO', 'EJECUTADA',
+    private const ESTADOS_APROBADOS = [
+        'APROBADA_JEFE', 'APROBADA', 'APROBADA_RRHH', 'PENDIENTE_GERENCIA',
+        'EN_CURSO', 'EJECUTADA',
     ];
 
     private const ESTADOS_CONSUMIDOS = ['APROBADA_RRHH', 'EN_CURSO', 'EJECUTADA'];
@@ -110,7 +110,7 @@ class SaldoModel extends Model
             ->where('id_servidor', $idServidor)
             ->where('fecha_inicio >=', $desde)
             ->where('fecha_inicio <=', $hasta)
-            ->whereIn('estado', self::ESTADOS_ACTIVOS)
+            ->whereIn('estado', self::ESTADOS_APROBADOS)
             ->groupBy('id_tipo, estado')
             ->get()->getResultArray();
 

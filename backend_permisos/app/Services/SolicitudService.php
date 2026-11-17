@@ -305,6 +305,10 @@ class SolicitudService
             $usadas = $this->baseReglas($idServidor, $idTipo, $excluirId)
                 ->where('s.fecha_inicio >=', $desde)
                 ->where('s.fecha_inicio <=', $hasta)
+                ->whereIn('s.estado', [
+                    'APROBADA_JEFE', 'APROBADA', 'APROBADA_RRHH',
+                    'PENDIENTE_GERENCIA', 'EN_CURSO', 'EJECUTADA',
+                ])
                 ->countAllResults();
 
             if ($usadas >= (int) $tipo['max_solicitudes_mes']) {
