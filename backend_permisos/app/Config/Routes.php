@@ -38,6 +38,7 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], static function ($
         });
 
         $r->get('saldos/mios', 'SaldosController::mios', ['filter' => 'role:SERVIDOR,ADMIN']);
+        $r->get('saldos/mensuales', 'SaldosController::mensuales', ['filter' => 'role:SERVIDOR,ADMIN']);
 
         $r->get('papeletas/(:num)/pdf', 'SolicitudesController::papeletaPdf/$1');
 

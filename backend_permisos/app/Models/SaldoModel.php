@@ -18,6 +18,13 @@ class SaldoModel extends Model
         'plazo_regularizacion_dias', 'activo',
     ];
 
+    private const ESTADOS_ACTIVOS = [
+        'PENDIENTE', 'OBSERVADA', 'APROBADA_JEFE', 'APROBADA', 'APROBADA_RRHH',
+        'PENDIENTE_GERENCIA', 'REGULARIZAR', 'EN_CURSO', 'EJECUTADA',
+    ];
+
+    private const ESTADOS_CONSUMIDOS = ['APROBADA_RRHH', 'EN_CURSO', 'EJECUTADA'];
+
     private function conTipo(array $row): array
     {
         $tipo = [];
@@ -53,6 +60,64 @@ class SaldoModel extends Model
             ->get()->getResultArray();
 
         return array_map(fn (array $row): array => $this->conTipo($row), $rows);
+    }
+
+    public function mensualesDelServidor(int $idServidor, int $anio, int $mes): array
+    {
+        $desde = sprintf('%04d-%02d-01', $anio, $mes);
+        $hasta = date('Y-m-t', strtotime($desde));
+
+        $tipos = $this->db->table('permiso_tipo_solicitud')
+            ->select('id_tipo, codigo, nombre, categoria, unidad_medida,
+                      max_solicitudes_mes, max_por_solicitud, max_horas_dia, max_horas_semana')
+            ->where('activo', 1)
+            ->where('codigo !=', 'PER_EMERGENCIA')
+            ->orderBy('categoria')
+            ->orderBy('nombre')
+            ->get()->getResultArray();
+
+        $movimientos = $this->db->table('permiso_solicitud_papeleta')
+            ->select('id_tipo, estado, COUNT(*) AS total, SUM(cantidad) AS cantidad')
+            ->where('id_servidor', $idServidor)
+            ->where('fecha_inicio >=', $desde)
+            ->where('fecha_inicio <=', $hasta)
+            ->whereIn('estado', self::ESTADOS_ACTIVOS)
+            ->groupBy('id_tipo, estado')
+            ->get()->getResultArray();
+
+        $resumen = [];
+        foreach ($movimientos as $m) {
+            $idTipo = (int) $m['id_tipo'];
+            if (! isset($resumen[$idTipo])) {
+                $resumen[$idTipo] = ['usadas' => 0, 'cantidad' => 0.0, 'estados' => []];
+            }
+
+            $total = (int) $m['total'];
+            $resumen[$idTipo]['usadas'] += $total;
+            $resumen[$idTipo]['estados'][$m['estado']] = $total;
+
+            if (in_array($m['estado'], self::ESTADOS_CONSUMIDOS, true)) {
+                $resumen[$idTipo]['cantidad'] += (float) $m['cantidad'];
+            }
+        }
+
+        foreach ($tipos as &$tipo) {
+            $idTipo = (int) $tipo['id_tipo'];
+            $datos  = $resumen[$idTipo] ?? ['usadas' => 0, 'cantidad' => 0.0, 'estados' => []];
+            $limite = $tipo['max_solicitudes_mes'] !== null
+                ? (int) $tipo['max_solicitudes_mes']
+                : null;
+
+            $tipo['id_tipo']            = $idTipo;
+            $tipo['max_solicitudes_mes'] = $limite;
+            $tipo['usadas']             = $datos['usadas'];
+            $tipo['disponibles']        = $limite === null ? null : max(0, $limite - $datos['usadas']);
+            $tipo['alcanzado']          = $limite !== null && $datos['usadas'] >= $limite;
+            $tipo['cantidad_usada']     = round($datos['cantidad'], 2);
+            $tipo['por_estado']         = $datos['estados'];
+        }
+
+        return $tipos;
     }
 
     /** Suma el consumo de una solicitud aprobada al saldo del año correspondiente. */

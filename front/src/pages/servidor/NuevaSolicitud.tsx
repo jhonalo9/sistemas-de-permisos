@@ -70,6 +70,7 @@ export default function NuevaSolicitud({ embedded = false, onClose }: NuevaSolic
   const [cantidad, setCantidad] = React.useState(0);
   const [condicionesSel, setCondicionesSel] = React.useState<any[]>([]);
   const [unidadSeleccionada, setUnidadSeleccionada] = React.useState<'HORAS' | 'DIAS' | null>(null);
+  const [usoMensual, setUsoMensual] = React.useState<any[]>([]);
   const [submitting, setSubmitting] = React.useState(false);
   const [loadingDraft, setLoadingDraft] = React.useState(!!draftId);
 
@@ -189,6 +190,28 @@ export default function NuevaSolicitud({ embedded = false, onClose }: NuevaSolic
 
   const condicionesDisponibles = (tipoSeleccionado?.condiciones || []).filter((c: any) => asBool(c.activo));
   const diasExtra = condicionesSel.reduce((acc: number, c: any) => acc + Number(c.dias_extra || 0), 0);
+
+  const periodoUso = (fechaInicio || hoyISO()).slice(0, 7);
+
+  React.useEffect(() => {
+    let activo = true;
+    const [anioUso, mesUso] = periodoUso.split('-');
+
+    (async () => {
+      try {
+        const res = await apiClient<any>(`/saldos/mensuales?anio=${anioUso}&mes=${mesUso}`);
+        if (activo) setUsoMensual(res.data || []);
+      } catch {
+        if (activo) setUsoMensual([]);
+      }
+    })();
+
+    return () => {
+      activo = false;
+    };
+  }, [periodoUso]);
+
+  const usoSeleccionado = usoMensual.find((u) => asNum(u.id_tipo) === asNum(idTipo));
 
   const fechaFinEfectiva = React.useMemo(() => {
     if (!fechaFin) return fechaFin;
@@ -514,6 +537,41 @@ export default function NuevaSolicitud({ embedded = false, onClose }: NuevaSolic
               }}
               error={errors.id_tipo}
             />
+            {tipoSeleccionado && usoSeleccionado && (
+              <div
+                className={`mt-2 rounded-xl border p-3 text-sm ${
+                  usoSeleccionado.alcanzado
+                    ? 'border-red-200 bg-red-50'
+                    : 'border-border bg-slate-50'
+                }`}
+              >
+                {usoSeleccionado.max_solicitudes_mes !== null ? (
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-text">
+                    <span>
+                      Tope mensual: <strong>{usoSeleccionado.max_solicitudes_mes}</strong>
+                    </span>
+                    <span>
+                      Usadas: <strong>{usoSeleccionado.usadas}</strong>
+                    </span>
+                    <span>
+                      Disponibles: <strong>{usoSeleccionado.disponibles ?? 0}</strong>
+                    </span>
+                  </div>
+                ) : (
+                  <p className="text-text">
+                    Sin tope mensual · Usadas este mes: <strong>{usoSeleccionado.usadas}</strong>
+                  </p>
+                )}
+                <p className="mt-1 text-xs text-text-muted">
+                  El conteo incluye solicitudes pendientes y aprobadas.
+                </p>
+                {usoSeleccionado.alcanzado && (
+                  <p className="mt-1 text-xs font-medium text-red-700">
+                    Alcanzaste el tope mensual de este tipo.
+                  </p>
+                )}
+              </div>
+            )}
             {tiposDisponibles.length === 0 && (
               <p className="helper-text">
                 No hay tipos activos para esta unidad. Un administrador debe crearlos en el catálogo.
