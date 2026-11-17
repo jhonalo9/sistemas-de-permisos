@@ -278,7 +278,7 @@ class SolicitudService
 
         $fechaInicio = $datos['fecha_inicio'] ?? null;
         $cantidad    = (float) ($datos['cantidad'] ?? 0);
-        if (empty($fechaInicio) || $cantidad <= 0) return;
+        if (empty($fechaInicio)) return;
 
         $unidad = $tipo['unidad_medida'] ?? 'DIAS';
 
