@@ -77,8 +77,8 @@ export default function ServidorHome() {
     border: 0;
     border-radius: 4px;
     /* Sombra más notoria */
-    box-shadow: 0 6px 16px rgba(27, 79, 156, 0.35),
-                0 2px 6px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 6px 16px rgba(15, 45, 90, 0.55),
+                0 2px 6px rgba(0, 0, 0, 0.28);
     box-sizing: border-box;
     padding: 16px 20px;
     color: #fff;
@@ -93,14 +93,14 @@ export default function ServidorHome() {
   .btn-uiverse:hover {
     opacity: .95;
     /* Sombra aún más elevada al pasar el mouse */
-    box-shadow: 0 10px 22px rgba(27, 79, 156, 0.45),
-                0 4px 10px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 10px 22px rgba(15, 45, 90, 0.65),
+                0 4px 10px rgba(0, 0, 0, 0.32);
     transform: translateY(-1px);
   }
   .btn-uiverse:active {
     transform: translateY(0);
-    box-shadow: 0 4px 10px rgba(27, 79, 156, 0.35),
-                0 1px 3px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 4px 10px rgba(15, 45, 90, 0.5),
+                0 1px 3px rgba(0, 0, 0, 0.25);
   }
   .btn-uiverse .animation {
     border-radius: 100%;
@@ -201,12 +201,19 @@ export default function ServidorHome() {
       </div>
 
      
- <div className="flex items-center justify-between gap-3">
+ <div>
    <h2 className="text-lg font-semibold text-text">Últimas solicitudes</h2>
-   <Button variant="outline" onClick={() => navigate('/servidor/mis-solicitudes')}>
-     Ver todas
-     <ChevronRight className="w-4 h-4" />
-   </Button>
+   <div className="flex items-center justify-between gap-3 mt-1">
+     <p className="text-sm font-sans text-text-muted">Seguimiento de sus trámites recientes</p>
+     <button
+       type="button"
+       onClick={() => navigate('/servidor/mis-solicitudes')}
+       className="inline-flex items-center gap-1 text-sm font-medium text-primary-600 hover:text-primary-700 hover:underline"
+     >
+       Ver todas
+       <ChevronRight className="w-4 h-4" />
+     </button>
+   </div>
  </div>
 
       {/* Vista de últimas solicitudes para celular */}
