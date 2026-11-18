@@ -58,9 +58,12 @@ export default function ServidorHome() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-bold text-text tracking-tight">Bienvenido, {usuario?.nombre}</h1>
-         <div className="flex flex-col sm:items-center justify-between gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-text tracking-tight">Bienvenido, {usuario?.nombre}</h1>
+          <p className="text-text-muted mt-1">Aquí encontrará un resumen de sus solicitudes.</p>
+        </div>
+        <div className="flex w-full sm:w-auto justify-end">
  
 
   <style>{`
@@ -129,9 +132,7 @@ export default function ServidorHome() {
     <i className="animation" aria-hidden="true" />
   </button>
    
-</div>
-        <p className="text-text-muted mt-1">Aquí encontrará un resumen de sus solicitudes.</p>
-        
+        </div>
       </div>
 
       
@@ -200,7 +201,13 @@ export default function ServidorHome() {
       </div>
 
      
- <h2 className="text-lg font-semibold text-text">Últimas solicitudes</h2>
+ <div className="flex items-center justify-between gap-3">
+   <h2 className="text-lg font-semibold text-text">Últimas solicitudes</h2>
+   <Button variant="outline" onClick={() => navigate('/servidor/mis-solicitudes')}>
+     Ver todas
+     <ChevronRight className="w-4 h-4" />
+   </Button>
+ </div>
 
       {/* Vista de últimas solicitudes para celular */}
       <div className="md:hidden space-y-3">
