@@ -56,6 +56,7 @@ module.exports = {
         soft: '0 1px 2px 0 rgb(15 23 42 / 0.04), 0 1px 3px 0 rgb(15 23 42 / 0.06)',
         card: '0 1px 3px 0 rgb(15 23 42 / 0.05), 0 4px 12px -2px rgb(15 23 42 / 0.06)',
         elevated: '0 4px 6px -1px rgb(15 23 42 / 0.06), 0 10px 24px -4px rgb(15 23 42 / 0.08)',
+        table: '0 2px 4px 0 rgb(15 23 42 / 0.12), 0 12px 28px -6px rgb(15 23 42 / 0.20)',
         glow: '0 0 0 3px rgb(27 79 156 / 0.15)',
       },
       borderRadius: {

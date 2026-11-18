@@ -271,7 +271,7 @@ export default function ServidorHome() {
       </div>
 
       {/* Vista de últimas solicitudes para escritorio */}
-      <div className="hidden md:block overflow-x-auto rounded-2xl border border-border/80 bg-white shadow-card">
+      <div className="hidden md:block overflow-x-auto rounded-2xl border border-border/80 bg-white shadow-table">
         <table className="min-w-full divide-y divide-border">
           <thead className="bg-slate-50/80">
             <tr>
