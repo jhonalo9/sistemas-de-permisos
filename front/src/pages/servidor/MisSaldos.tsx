@@ -2,8 +2,8 @@ import React from 'react';
 import { apiClient } from '@/services/api';
 import { Button, Card, ProgressBar, useToast } from '@/components/common';
 import GraficoSemicirculo from '@/components/saldos/GraficoSemicirculo';
-import { estadoLabel, unidadLabel } from '@/utils/format';
-import { Wallet, Clock, CheckCircle2, CalendarDays, AlertTriangle, BarChart3, LayoutGrid } from 'lucide-react';
+import { estadoLabel, formatearCantidad, unidadLabel } from '@/utils/format';
+import { Wallet, Clock, CalendarDays, AlertTriangle, BarChart3, LayoutGrid } from 'lucide-react';
 
 type Tab = 'anuales' | 'mensuales';
 
@@ -132,48 +132,63 @@ export default function MisSaldos() {
             ))}
           </div>
         ) : (
-          <div className="space-y-4">
-            {saldos.map((s) => {
-              const Icon = iconos[s.tipo?.categoria] || CheckCircle2;
-              const disponible = s.asignado - s.usado;
-              const porcentaje = s.asignado > 0 ? Math.min((s.usado / s.asignado) * 100, 100) : 0;
-              return (
-                <Card key={s.id_saldo} className="p-5">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                        <Icon className="w-5 h-5" />
-                      </div>
+          <Card className="p-0 overflow-hidden">
+            <div className="divide-y divide-border">
+              {saldos.map((s) => {
+                const disponible = s.asignado - s.usado;
+                const porcentaje = s.asignado > 0 ? Math.min((s.usado / s.asignado) * 100, 100) : 0;
+                const colorBarra =
+                  porcentaje >= 100
+                    ? 'bg-red-500'
+                    : porcentaje >= 75
+                      ? 'bg-amber-500'
+                      : 'bg-emerald-600';
+
+                return (
+                  <div key={s.id_saldo} className="p-5">
+                    <div className="grid grid-cols-1 lg:grid-cols-[1.3fr_repeat(3,minmax(80px,0.55fr))_minmax(160px,1.1fr)] gap-4 lg:items-center">
                       <div>
                         <p className="font-semibold text-text">{s.tipo?.nombre}</p>
-                        <p className="text-xs text-gray-500">
-                          {unidadLabel(s.tipo?.unidad_medida || 'DIAS')} • Año {s.anio}
+                        <p className="text-xs text-text-muted">
+                          Período enero – diciembre {s.anio}
                         </p>
                       </div>
+
+                      <div>
+                        <p className="text-xs text-text-muted">Asignado</p>
+                        <p className="text-base font-bold text-text">
+                          {formatearCantidad(s.asignado, s.tipo?.unidad_medida || 'DIAS')}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="text-xs text-text-muted">Usado</p>
+                        <p className="text-base font-bold text-text">
+                          {formatearCantidad(s.usado, s.tipo?.unidad_medida || 'DIAS')}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="text-xs text-text-muted">Disponible</p>
+                        <p className="text-base font-bold text-emerald-700">
+                          {formatearCantidad(disponible, s.tipo?.unidad_medida || 'DIAS')}
+                        </p>
+                      </div>
+
+                      <div className="w-full">
+                        <ProgressBar
+                          valor={s.usado}
+                          maximo={s.asignado}
+                          className="h-2.5"
+                          color={colorBarra}
+                        />
+                      </div>
                     </div>
-                    <span className={`font-bold text-text ${porcentaje > 80 ? 'text-red-600' : ''}`}>
-                      {disponible} disponible
-                    </span>
                   </div>
-                  <div className="grid grid-cols-3 gap-4 text-sm mb-3">
-                    <div>
-                      <p className="text-xs text-gray-500 uppercase">Asignado</p>
-                      <p className="font-medium text-text">{s.asignado}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500 uppercase">Usado</p>
-                      <p className="font-medium text-text">{s.usado}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500 uppercase">Disponible</p>
-                      <p className="font-medium text-text">{disponible}</p>
-                    </div>
-                  </div>
-                  <ProgressBar valor={s.usado} maximo={s.asignado} className="h-3" />
-                </Card>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          </Card>
         )
       ) : (
         <div className="space-y-4">
