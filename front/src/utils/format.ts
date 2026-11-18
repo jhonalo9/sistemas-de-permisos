@@ -53,12 +53,16 @@ export function formatearRangoFechas(inicio?: string | null, fin?: string | null
   return `${formatearFechaCorta(inicio)} – ${formatearFechaCorta(fin)}`;
 }
 
-export function formatearCantidad(cantidad?: number | string | null, unidad?: string | null): string {
+export function formatearCantidad(
+  cantidad?: number | string | null,
+  unidad?: string | null,
+  pendienteSiCero = false
+): string {
   const n = Number(cantidad ?? 0);
   if (!Number.isFinite(n)) return '—';
 
   if ((unidad || 'DIAS') === 'HORAS') {
-    if (n <= 0) return 'Pendiente';
+    if (n <= 0) return pendienteSiCero ? 'Pendiente' : '0 h';
     const totalMin = Math.round(n * 60);
     const horas = Math.floor(totalMin / 60);
     const minutos = totalMin % 60;
@@ -77,7 +81,7 @@ export function formatearFechaCantidad(
   cantidad?: number | string | null,
   unidad?: string | null
 ): string {
-  return `${formatearRangoFechas(inicio, fin)} · ${formatearCantidad(cantidad, unidad)}`;
+  return `${formatearRangoFechas(inicio, fin)} · ${formatearCantidad(cantidad, unidad, true)}`;
 }
 
 

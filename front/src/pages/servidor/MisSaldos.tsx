@@ -2,8 +2,8 @@ import React from 'react';
 import { apiClient } from '@/services/api';
 import { Button, Card, ProgressBar, useToast } from '@/components/common';
 import GraficoSemicirculo from '@/components/saldos/GraficoSemicirculo';
-import { estadoLabel, formatearCantidad, unidadLabel } from '@/utils/format';
-import { Wallet, Clock, CalendarDays, AlertTriangle, BarChart3, LayoutGrid } from 'lucide-react';
+import { estadoLabel, formatearCantidad } from '@/utils/format';
+import { BarChart3, LayoutGrid } from 'lucide-react';
 
 type Tab = 'anuales' | 'mensuales';
 
@@ -41,12 +41,16 @@ export default function MisSaldos() {
     cargar();
   }, [cargar]);
 
-  const iconos: Record<string, any> = { LICENCIA: Wallet, PERMISO: Clock };
-
   const conTope = mensuales.filter((m) => m.max_solicitudes_mes !== null);
   const sinTope = mensuales.filter(
     (m) => m.max_solicitudes_mes === null && (m.usadas > 0 || m.asignado_anual !== null)
   );
+
+  const [anioPeriodo, mesPeriodo] = mes.split('-');
+  const nombreMes = new Date(Number(anioPeriodo), Number(mesPeriodo) - 1, 1)
+    .toLocaleDateString('es-PE', { month: 'long' })
+    .replace(/^\w/, (c) => c.toUpperCase());
+  const periodoMes = `${nombreMes} ${anioPeriodo}`;
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -202,96 +206,95 @@ export default function MisSaldos() {
               <p className="text-gray-600">No hay tipos con tope mensual configurado.</p>
             </Card>
           ) : (
-            conTope.map((m) => {
-              const Icon = iconos[m.categoria] || CalendarDays;
-              const usadas = Number(m.usadas || 0);
-              const limite = Number(m.max_solicitudes_mes);
-              const disponibles = m.disponibles === null ? null : Number(m.disponibles);
-              const alcanzado = !!m.alcanzado;
-              const detalle = Object.entries(m.por_estado || {})
-                .filter(([, total]) => Number(total) > 0)
-                .map(([estado, total]) => `${total} ${estadoLabel(estado).toLowerCase()}`)
-                .join(' · ');
+            <Card className="p-0 overflow-hidden">
+              <div className="divide-y divide-border">
+                {conTope.map((m) => {
+                  const usadas = Number(m.usadas || 0);
+                  const limite = Number(m.max_solicitudes_mes);
+                  const disponibles = m.disponibles === null ? null : Number(m.disponibles);
+                  const alcanzado = !!m.alcanzado;
+                  const porcentaje = limite > 0 ? Math.min(100, (usadas / limite) * 100) : 0;
+                  const colorBarra = alcanzado
+                    ? 'bg-red-500'
+                    : porcentaje >= 75
+                      ? 'bg-amber-500'
+                      : 'bg-emerald-600';
+                  const detalle = Object.entries(m.por_estado || {})
+                    .filter(([, total]) => Number(total) > 0)
+                    .map(([estado, total]) => `${total} ${estadoLabel(estado).toLowerCase()}`)
+                    .join(' · ');
 
-              return (
-                <Card key={m.id_tipo} className="p-5">
-                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                        <Icon className="w-5 h-5" />
+                  return (
+                    <div key={m.id_tipo} className="p-5">
+                      <div className="grid grid-cols-1 lg:grid-cols-[1.3fr_repeat(3,minmax(80px,0.55fr))_minmax(160px,1.1fr)] gap-4 lg:items-center">
+                        <div>
+                          <p className="font-semibold text-text">{m.nombre}</p>
+                          <p className="text-xs text-text-muted">
+                            Período {periodoMes} · Tope mensual: {limite} solicitud(es)
+                          </p>
+                          {detalle && (
+                            <p className="text-xs text-text-muted mt-1">Detalle: {detalle}.</p>
+                          )}
+                          {Number(m.cantidad_usada) > 0 && (
+                            <p className="text-xs text-text-muted mt-1">
+                              Consumo aprobado: {formatearCantidad(m.cantidad_usada, m.unidad_medida)}
+                            </p>
+                          )}
+                          {alcanzado && (
+                            <p className="text-xs font-semibold text-red-600 mt-1">
+                              Alcanzaste el tope mensual de este tipo.
+                            </p>
+                          )}
+                        </div>
+
+                        <div>
+                          <p className="text-xs text-text-muted">Tope</p>
+                          <p className="text-base font-bold text-text">{limite}</p>
+                        </div>
+
+                        <div>
+                          <p className="text-xs text-text-muted">Usadas</p>
+                          <p className="text-base font-bold text-text">{usadas}</p>
+                        </div>
+
+                        <div>
+                          <p className="text-xs text-text-muted">Disponibles</p>
+                          <p className={`text-base font-bold ${alcanzado ? 'text-red-600' : 'text-emerald-700'}`}>
+                            {disponibles ?? '—'}
+                          </p>
+                        </div>
+
+                        <div className="w-full">
+                          <ProgressBar
+                            valor={usadas}
+                            maximo={limite}
+                            className="h-2.5"
+                            color={colorBarra}
+                          />
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-semibold text-text">{m.nombre}</p>
-                        <p className="text-xs text-gray-500">
-                          Tope mensual de {limite} solicitud(es)
-                        </p>
-                      </div>
                     </div>
-                    <span className={`font-bold ${alcanzado ? 'text-red-600' : 'text-text'}`}>
-                      {usadas}/{limite} usadas
-                    </span>
-                  </div>
-
-                  <ProgressBar
-                    valor={usadas}
-                    maximo={limite}
-                    className="h-3 mb-3"
-                    color={
-                      alcanzado
-                        ? 'bg-red-500'
-                        : limite > 0 && usadas / limite >= 0.75
-                          ? 'bg-amber-500'
-                          : 'bg-emerald-500'
-                    }
-                  />
-
-                  <div className="grid grid-cols-3 gap-4 text-sm mb-3">
-                    <div>
-                      <p className="text-xs text-gray-500 uppercase">Usadas</p>
-                      <p className="font-medium text-text">{usadas}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500 uppercase">Disponibles</p>
-                      <p className="font-medium text-text">{disponibles ?? '—'}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500 uppercase">Consumo aprobado</p>
-                      <p className="font-medium text-text">
-                        {m.cantidad_usada} {unidadLabel(m.unidad_medida)}
-                      </p>
-                    </div>
-                  </div>
-
-                  {detalle && (
-                    <p className="text-xs text-text-muted">
-                      Detalle: {detalle}.
-                    </p>
-                  )}
-
-                  {alcanzado && (
-                    <div className="mt-3 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3">
-                      <AlertTriangle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
-                      <p className="text-sm text-red-700">
-                        Alcanzaste el tope mensual de este tipo. No podrás registrar otra solicitud
-                        hasta el próximo mes o hasta que se anule una existente.
-                      </p>
-                    </div>
-                  )}
-                </Card>
-              );
-            })
+                  );
+                })}
+              </div>
+            </Card>
           )}
 
           {sinTope.length > 0 && (
-            <Card className="p-5">
-              <h2 className="font-semibold text-text mb-1">Sin tope mensual</h2>
-              <p className="text-sm text-text-muted mb-4">
-                Tipos sin límite de solicitudes por mes, con el consumo registrado en el período.
-              </p>
+            <Card className="p-0 overflow-hidden">
+              <div className="px-5 py-4 border-b border-border">
+                <h2 className="font-semibold text-text">Sin tope mensual</h2>
+                <p className="text-sm text-text-muted">
+                  Tipos sin límite de solicitudes por mes, con el consumo registrado en el período.
+                </p>
+              </div>
               <div className="divide-y divide-border">
                 {sinTope.map((m) => {
                   const topeAnual = m.asignado_anual !== null ? Number(m.asignado_anual) : null;
                   const usadoAnual = Number(m.usado_anual || 0);
+                  const disponibleAnual = m.disponible_anual !== null
+                    ? Number(m.disponible_anual)
+                    : null;
                   const porcentajeAnual = topeAnual && topeAnual > 0
                     ? Math.min(100, (usadoAnual / topeAnual) * 100)
                     : 0;
@@ -299,40 +302,67 @@ export default function MisSaldos() {
                     ? 'bg-red-500'
                     : porcentajeAnual >= 75
                       ? 'bg-amber-500'
-                      : 'bg-emerald-500';
+                      : 'bg-emerald-600';
 
                   return (
-                    <div key={m.id_tipo} className="py-3 space-y-2">
-                      <div className="flex items-center justify-between gap-3">
+                    <div key={m.id_tipo} className="p-5">
+                      <div className="grid grid-cols-1 lg:grid-cols-[1.3fr_repeat(3,minmax(80px,0.55fr))_minmax(160px,1.1fr)] gap-4 lg:items-center">
                         <div>
-                          <p className="text-sm font-medium text-text">{m.nombre}</p>
-                          <p className="text-xs text-gray-500">
+                          <p className="font-semibold text-text">{m.nombre}</p>
+                          <p className="text-xs text-text-muted">
+                            Período {periodoMes} · Sin tope mensual
+                          </p>
+                          <p className="text-xs text-text-muted mt-1">
                             {topeAnual !== null
-                              ? `Sin tope mensual · Tope anual: ${topeAnual} ${unidadLabel(m.unidad_medida)}`
+                              ? `Tope anual: ${formatearCantidad(topeAnual, m.unidad_medida)}`
                               : 'Sin tope mensual ni anual'}
                           </p>
                         </div>
-                        <div className="text-right">
-                          <p className="text-sm font-medium text-text">{m.usadas} solicitud(es)</p>
-                          <p className="text-xs text-gray-500">
-                            {m.cantidad_usada} {unidadLabel(m.unidad_medida)} aprobados
-                          </p>
-                        </div>
+
+                        {topeAnual !== null ? (
+                          <>
+                            <div>
+                              <p className="text-xs text-text-muted">Tope anual</p>
+                              <p className="text-base font-bold text-text">
+                                {formatearCantidad(topeAnual, m.unidad_medida)}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-text-muted">Usado</p>
+                              <p className="text-base font-bold text-text">
+                                {formatearCantidad(usadoAnual, m.unidad_medida)}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-text-muted">Disponible</p>
+                              <p className="text-base font-bold text-emerald-700">
+                                {formatearCantidad(disponibleAnual ?? 0, m.unidad_medida)}
+                              </p>
+                            </div>
+                            <div className="w-full">
+                              <ProgressBar
+                                valor={usadoAnual}
+                                maximo={topeAnual}
+                                className="h-2.5"
+                                color={colorAnual}
+                              />
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <div>
+                              <p className="text-xs text-text-muted">Usadas este mes</p>
+                              <p className="text-base font-bold text-text">{m.usadas}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-text-muted">Consumo aprobado</p>
+                              <p className="text-base font-bold text-text">
+                                {formatearCantidad(m.cantidad_usada, m.unidad_medida)}
+                              </p>
+                            </div>
+                          </>
+                        )}
                       </div>
-                      {topeAnual !== null && (
-                        <>
-                          <ProgressBar
-                            valor={usadoAnual}
-                            maximo={topeAnual}
-                            className="h-2"
-                            color={colorAnual}
-                          />
-                          <p className="text-xs text-text-muted">
-                            Usado: {usadoAnual} {unidadLabel(m.unidad_medida)} ·
-                            {' '}Disponible: {m.disponible_anual ?? 0} {unidadLabel(m.unidad_medida)}
-                          </p>
-                        </>
-                      )}
                     </div>
                   );
                 })}
