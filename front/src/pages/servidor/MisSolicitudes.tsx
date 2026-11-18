@@ -1,9 +1,9 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiClient } from '@/services/api';
-import { Button, Badge, Card, useToast } from '@/components/common';
-import { formatearFechaCantidad, estadoLabel, estadoColor, categoriaLabel, asBool } from '@/utils/format';
-import { FileText, Search, Filter, Clock } from 'lucide-react';
+import { Badge, Card, useToast } from '@/components/common';
+import { formatearFechaCantidad, estadoLabel, asBool } from '@/utils/format';
+import { Search, ChevronRight } from 'lucide-react';
 
 export default function MisSolicitudes() {
   const { toast } = useToast();
@@ -11,6 +11,7 @@ export default function MisSolicitudes() {
   const [solicitudes, setSolicitudes] = React.useState<any[]>([]);
   const [filtroEstado, setFiltroEstado] = React.useState('');
   const [filtroAnio, setFiltroAnio] = React.useState(String(new Date().getFullYear()));
+  const [busqueda, setBusqueda] = React.useState('');
   const [loading, setLoading] = React.useState(true);
 
   const estados = [
@@ -28,6 +29,7 @@ export default function MisSolicitudes() {
       const params = new URLSearchParams();
       if (filtroEstado) params.set('estado', filtroEstado);
       if (filtroAnio) params.set('anio', filtroAnio);
+      params.set('per_page', '100');
       const res = await apiClient<any>(`/solicitudes?${params.toString()}`);
       setSolicitudes(res.data || []);
     } catch (e: any) {
@@ -37,43 +39,36 @@ export default function MisSolicitudes() {
     }
   }
 
-  const filtradas = solicitudes.filter((s) => !filtroEstado || s.estado === filtroEstado);
+  const filtradas = solicitudes.filter((s) => {
+    if (filtroEstado && s.estado !== filtroEstado) return false;
 
-  const renderAccion = (s: any, className = '') => {
+    const q = busqueda.trim().toLowerCase();
+    if (!q) return true;
+
+    const texto = [
+      s.nro_solicitud,
+      s.tipo?.nombre,
+      s.motivo,
+      s.estado,
+      estadoLabel(s.estado || ''),
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+
+    return texto.includes(q);
+  });
+
+  const abrirSolicitud = (s: any) => {
     if (s.estado === 'BORRADOR') {
-      return (
-        <Button
-          variant="outline"
-          className={className}
-          onClick={() => navigate(`/servidor/borradores/${s.id_solicitud}`)}
-        >
-          Continuar
-        </Button>
-      );
+      navigate(`/servidor/borradores/${s.id_solicitud}`);
+      return;
     }
-
     if (s.estado === 'REGULARIZAR') {
-      return (
-        <Button
-          variant="primary"
-          className={className}
-          onClick={() => navigate('/servidor/regularizar')}
-        >
-          <Clock className="w-4 h-4 mr-1" />
-          Regularizar
-        </Button>
-      );
+      navigate('/servidor/regularizar');
+      return;
     }
-
-    return (
-      <Button
-        variant="outline"
-        className={className}
-        onClick={() => navigate(`/servidor/mis-solicitudes/${s.id_solicitud}`)}
-      >
-        Ver
-      </Button>
-    );
+    navigate(`/servidor/mis-solicitudes/${s.id_solicitud}`);
   };
 
   return (
@@ -83,26 +78,36 @@ export default function MisSolicitudes() {
         <p className="text-gray-600">Consulte el estado de sus solicitudes de permisos y licencias.</p>
       </div>
 
-      <div className="flex flex-col md:flex-row gap-2 items-end">
-        <div className="flex-1">
-          <InputLabel>Filtros</InputLabel>
-          <div className="flex items-center gap-1">
-            
-            <select
-              value={filtroEstado}
-              onChange={(e) => setFiltroEstado(e.target.value)}
-              className="input-field pl-4 pr-8"
-            >
-              <option value="">Todos los estados</option>
-              {estados.map((e) => (
-                <option key={e} value={e}>
-                  {estadoLabel(e)}
-                </option>
-              ))}
-            </select>
+      <div className="flex flex-col md:flex-row gap-3 items-end">
+        <div className="flex-1 w-full">
+          <InputLabel>Buscar</InputLabel>
+          <div className="relative">
+            <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+              placeholder="N.º, tipo, motivo o estado"
+              className="input-field pl-9"
+            />
           </div>
         </div>
-        <div className="w-full md:w-48">
+        <div className="w-full md:w-56">
+          <InputLabel>Estado</InputLabel>
+          <select
+            value={filtroEstado}
+            onChange={(e) => setFiltroEstado(e.target.value)}
+            className="input-field"
+          >
+            <option value="">Todos los estados</option>
+            {estados.map((e) => (
+              <option key={e} value={e}>
+                {estadoLabel(e)}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="w-full md:w-36">
           <InputLabel>Año</InputLabel>
           <select
             value={filtroAnio}
@@ -130,13 +135,29 @@ export default function MisSolicitudes() {
               </Card>
             ) : (
               filtradas.map((s) => (
-                <Card key={s.id_solicitud} className="p-4">
+                <Card
+                  key={s.id_solicitud}
+                  className="p-4 cursor-pointer hover:border-primary/40 transition-colors"
+                  onClick={() => abrirSolicitud(s)}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Ver solicitud ${s.nro_solicitud || ''}`}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      abrirSolicitud(s);
+                    }
+                  }}
+                >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="text-xs text-gray-500 uppercase">Solicitud</p>
                       <p className="font-semibold text-text mt-0.5">{s.nro_solicitud}</p>
                     </div>
-                    <Badge estado={s.estado} />
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Badge estado={s.estado} />
+                      <ChevronRight className="w-4 h-4 text-gray-400" />
+                    </div>
                   </div>
 
                   <p className="font-medium text-text mt-3">{s.tipo?.nombre || '—'}</p>
@@ -154,31 +175,37 @@ export default function MisSolicitudes() {
                       <span className="w-2 h-2 rounded-full bg-red-500 shrink-0" title="Urgente" />
                     )}
                   </div>
-
-                  <div className="mt-4">
-                    {renderAccion(s, 'w-full')}
-                  </div>
                 </Card>
               ))
             )}
           </div>
 
           {/* Vista para escritorio */}
-          <div className="hidden md:block overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200 bg-white">
-              <thead className="bg-gray-50 sticky top-0 z-10">
+          <div className="hidden md:block overflow-x-auto shadow-table rounded-2xl border border-border/80 bg-white">
+            <table className="min-w-full divide-y divide-border">
+              <thead className="bg-slate-50/80 sticky top-0 z-10">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">N.º solicitud</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Tipo</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Fecha / cantidad</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Estado</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Acción</th>
+                  <th className="px-4 py-3.5 text-left text-xs font-semibold text-text-muted uppercase tracking-wider">N.º solicitud</th>
+                  <th className="px-4 py-3.5 text-left text-xs font-semibold text-text-muted uppercase tracking-wider">Tipo</th>
+                  <th className="px-4 py-3.5 text-left text-xs font-semibold text-text-muted uppercase tracking-wider">Fecha / cantidad</th>
+                  <th className="px-4 py-3.5 text-left text-xs font-semibold text-text-muted uppercase tracking-wider">Estado</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white divide-y divide-border">
                 {filtradas.length > 0 ? (
                   filtradas.map((s) => (
-                    <tr key={s.id_solicitud} className="hover:bg-gray-50">
+                    <tr
+                      key={s.id_solicitud}
+                      className="hover:bg-slate-50/80 transition-colors cursor-pointer"
+                      onClick={() => abrirSolicitud(s)}
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          abrirSolicitud(s);
+                        }
+                      }}
+                    >
                       <td className="px-4 py-3 text-sm font-medium text-text">{s.nro_solicitud}</td>
                       <td className="px-4 py-3 text-sm text-text">{s.tipo?.nombre || '—'}</td>
                       <td className="px-4 py-3 text-sm text-text">
@@ -197,16 +224,16 @@ export default function MisSolicitudes() {
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                        <Badge estado={s.estado} />
-                      </td>
-                      <td className="px-4 py-3">
-                        {renderAccion(s)}
+                        <div className="flex items-center justify-between gap-4">
+                          <Badge estado={s.estado} />
+                          <ChevronRight className="w-4 h-4 text-gray-400 shrink-0" />
+                        </div>
                       </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={5} className="px-4 py-8 text-center text-gray-500">
+                    <td colSpan={4} className="px-4 py-8 text-center text-gray-500">
                       No se encontraron solicitudes.
                     </td>
                   </tr>
