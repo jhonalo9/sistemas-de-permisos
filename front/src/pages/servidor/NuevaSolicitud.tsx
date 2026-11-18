@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button, Input, Select, TextArea, DropZone, Card, ProgressBar, useToast } from '@/components/common';
-import { calcularDiasEntre, categoriaLabel, unidadLabel, asBool, asNum } from '@/utils/format';
+import { calcularDiasEntre, categoriaLabel, formatearCantidad, unidadLabel, asBool, asNum } from '@/utils/format';
 import { AlertTriangle, CalendarDays, Clock, FileText } from 'lucide-react';
 
 const schema = z
@@ -213,15 +213,15 @@ export default function NuevaSolicitud({ embedded = false, onClose }: NuevaSolic
 
   const usoSeleccionado = usoMensual.find((u) => asNum(u.id_tipo) === asNum(idTipo));
   const limiteUso = usoSeleccionado?.max_solicitudes_mes ?? null;
-  const porcentajeUso =
-    limiteUso !== null && Number(limiteUso) > 0
-      ? Math.min(100, (Number(usoSeleccionado?.usadas || 0) / Number(limiteUso)) * 100)
-      : 0;
-  const colorUso = usoSeleccionado?.alcanzado
-    ? 'bg-red-500'
-    : porcentajeUso >= 75
-      ? 'bg-amber-500'
-      : 'bg-emerald-500';
+  const segmentosUso = limiteUso !== null
+    ? Math.min(Math.max(Number(limiteUso), 1), 12)
+    : 0;
+  const segmentosLlenos = limiteUso !== null && Number(limiteUso) > 0
+    ? Math.min(
+        segmentosUso,
+        Math.round((Number(usoSeleccionado?.usadas || 0) / Number(limiteUso)) * segmentosUso)
+      )
+    : 0;
 
   const topeAnualUso = usoSeleccionado?.asignado_anual ?? null;
   const usadoAnualUso = Number(usoSeleccionado?.usado_anual || 0);
@@ -463,10 +463,10 @@ export default function NuevaSolicitud({ embedded = false, onClose }: NuevaSolic
                 <div className="w-12 h-12 rounded-xl bg-primary-50 text-primary-600 flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
                   <Clock className="w-6 h-6" />
                 </div>
-                <p className="text-lg font-semibold text-text">PAPELETA</p>
-                <p className="text-sm text-text-muted mt-1">
+                <p className="text-lg font-semibold text-text">PAPELETA </p>
+                {/*<p className="text-sm text-text-muted mt-1">
                   Permiso por horas: Salida y retorno el mismo día. Ideal para trámites, salud o asuntos personales.
-                </p>
+                </p>*/}
                 <p className="text-xs font-medium text-primary-600 mt-4">
                   {conteoHoras} tipo(s) disponible(s)
                 </p>
@@ -481,9 +481,9 @@ export default function NuevaSolicitud({ embedded = false, onClose }: NuevaSolic
                   <CalendarDays className="w-6 h-6" />
                 </div>
                 <p className="text-lg font-semibold text-text">Licencia o permiso por días</p>
-                <p className="text-sm text-text-muted mt-1">
+                {/*<p className="text-sm text-text-muted mt-1">
                   Solicitudes que abarcan días completos, con fechas de inicio y fin.
-                </p>
+                </p>*/}
                 <p className="text-xs font-medium text-primary-600 mt-4">
                   {conteoDias} tipo(s) disponible(s)
                 </p>
@@ -547,7 +547,8 @@ export default function NuevaSolicitud({ embedded = false, onClose }: NuevaSolic
 
           <div>
             <Select
-              label="Tipo de permiso o licencia"
+              label="Tipo de permiso"
+              className="!min-h-[58px] !text-lg !rounded-2xl"
               options={tiposDisponibles.map((t) => ({ value: t.id_tipo, label: t.nombre }))}
               value={idTipo || ''}
               onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -560,129 +561,51 @@ export default function NuevaSolicitud({ embedded = false, onClose }: NuevaSolic
               error={errors.id_tipo}
             />
             {tipoSeleccionado && usoSeleccionado && (
-              <div
-                className={`mt-2 rounded-xl border p-4 ${
-                  (limiteUso !== null && usoSeleccionado.alcanzado) ||
-                  (limiteUso === null && usoSeleccionado.alcanzado_anual)
-                    ? 'border-red-200 bg-red-50'
-                    : 'border-border bg-slate-50'
-                }`}
-              >
-                <div className="flex items-center justify-between gap-3 mb-2">
-                  <p className="text-sm font-semibold text-text">
-                    {limiteUso !== null
-                      ? 'Uso mensual'
-                      : topeAnualUso !== null
-                        ? 'Uso anual'
-                        : 'Uso del tipo'}
-                  </p>
-                  {limiteUso !== null ? (
-                    <span
-                      className={`text-sm font-bold ${
-                        usoSeleccionado.alcanzado ? 'text-red-600' : 'text-text'
-                      }`}
-                    >
-                      {usoSeleccionado.usadas} / {limiteUso}
-                    </span>
-                  ) : topeAnualUso !== null ? (
-                    <span
-                      className={`text-xs font-bold ${
-                        usoSeleccionado.alcanzado_anual ? 'text-red-600' : 'text-text'
-                      }`}
-                    >
-                      {usadoAnualUso} / {topeAnualUso} {unidadLabel(usoSeleccionado.unidad_medida)}
-                    </span>
-                  ) : (
-                    <span className="text-xs font-medium text-text-muted">
-                      Sin tope mensual ni anual
-                    </span>
-                  )}
-                </div>
-
+              <div className="mt-2">
                 {limiteUso !== null ? (
-                  <>
-                    <ProgressBar
-                      valor={Number(usoSeleccionado.usadas || 0)}
-                      maximo={Number(limiteUso)}
-                      className="h-3"
-                      color={colorUso}
-                    />
-                    {/*<div className="mt-3 grid grid-cols-3 gap-2 text-center">
-                      <div className="rounded-lg bg-white/70 border border-border/60 p-2">
-                        <p className="text-xs text-text-muted uppercase">Tope</p>
-                        <p className="text-base font-bold text-text">{limiteUso}</p>
-                      </div>
-                      <div className="rounded-lg bg-white/70 border border-border/60 p-2">
-                        <p className="text-xs text-text-muted uppercase">Usadas</p>
-                        <p className="text-base font-bold text-text">{usoSeleccionado.usadas}</p>
-                      </div>
-                      <div className="rounded-lg bg-white/70 border border-border/60 p-2">
-                        <p className="text-xs text-text-muted uppercase">Disponibles</p>
-                        <p
-                          className={`text-base font-bold ${
-                            usoSeleccionado.alcanzado ? 'text-red-600' : 'text-text'
+                  <div className="flex items-center gap-3">
+                    <div className="flex flex-1 items-center gap-1 min-w-[140px]">
+                      {Array.from({ length: segmentosUso }).map((_, i) => (
+                        <span
+                          key={i}
+                          className={`h-2 flex-1 rounded-full transition-colors ${
+                            i < segmentosLlenos ? 'bg-primary' : 'bg-slate-200'
                           }`}
-                        >
-                          {usoSeleccionado.disponibles ?? 0}
-                        </p>
-                      </div>
-                    </div>*/}
-                    <p className="mt-2 text-xs text-text-muted">
-                      El conteo solo incluye solicitudes aprobadas.
-                    </p>
-                    {usoSeleccionado.alcanzado && (
-                      <p className="mt-2 text-sm font-semibold text-red-700">
-                        Alcanzaste el tope mensual de este tipo.
-                      </p>
-                    )}
-                  </>
+                        />
+                      ))}
+                    </div>
+                    <span className="text-sm text-text-muted whitespace-nowrap">
+                      {usoSeleccionado.usadas} de {limiteUso} usos este mes
+                    </span>
+                  </div>
                 ) : topeAnualUso !== null ? (
-                  <>
+                  <div>
                     <ProgressBar
                       valor={usadoAnualUso}
                       maximo={Number(topeAnualUso)}
-                      className="h-3"
+                      className="h-2.5"
                       color={colorAnualUso}
                     />
-                    {/*<div className="mt-3 grid grid-cols-3 gap-2 text-center">
-                      <div className="rounded-lg bg-white/70 border border-border/60 p-2">
-                        <p className="text-xs text-text-muted uppercase">Tope anual</p>
-                        <p className="text-sm font-bold text-text">
-                          {topeAnualUso} {unidadLabel(usoSeleccionado.unidad_medida)}
-                        </p>
-                      </div>
-                      <div className="rounded-lg bg-white/70 border border-border/60 p-2">
-                        <p className="text-xs text-text-muted uppercase">Usado</p>
-                        <p className="text-sm font-bold text-text">
-                          {usadoAnualUso} {unidadLabel(usoSeleccionado.unidad_medida)}
-                        </p>
-                      </div>
-                      <div className="rounded-lg bg-white/70 border border-border/60 p-2">
-                        <p className="text-xs text-text-muted uppercase">Disponible</p>
-                        <p
-                          className={`text-sm font-bold ${
-                            usoSeleccionado.alcanzado_anual ? 'text-red-600' : 'text-text'
-                          }`}
-                        >
-                          {usoSeleccionado.disponible_anual ?? 0}{' '}
-                          {unidadLabel(usoSeleccionado.unidad_medida)}
-                        </p>
-                      </div>
-                    </div>*/}
-                    <p className="mt-2 text-xs text-text-muted">
-                      Este tipo no tiene tope mensual; se muestra su tope anual.
+                    <p className="mt-1 text-sm text-text-muted text-right">
+                      {formatearCantidad(usadoAnualUso, usoSeleccionado.unidad_medida)} de{' '}
+                      {formatearCantidad(topeAnualUso, usoSeleccionado.unidad_medida)} usados este año
                     </p>
-                    {usoSeleccionado.alcanzado_anual && (
-                      <p className="mt-2 text-sm font-semibold text-red-700">
-                        Alcanzaste el tope anual de este tipo.
-                      </p>
-                    )}
-                  </>
-                ) : (
-                  <div className="flex items-center justify-between rounded-lg bg-white/70 border border-border/60 px-3 py-2">
-                    <span className="text-sm text-text-muted">Solicitudes usadas este mes</span>
-                    <span className="text-sm font-bold text-text">{usoSeleccionado.usadas}</span>
                   </div>
+                ) : (
+                  <p className="text-sm text-text-muted">
+                    {usoSeleccionado.usadas} usos este mes · Sin tope mensual ni anual
+                  </p>
+                )}
+
+                {usoSeleccionado.alcanzado && (
+                  <p className="mt-1 text-sm font-semibold text-red-600">
+                    Alcanzaste el tope mensual de este tipo.
+                  </p>
+                )}
+                {limiteUso === null && usoSeleccionado.alcanzado_anual && (
+                  <p className="mt-1 text-sm font-semibold text-red-600">
+                    Alcanzaste el tope anual de este tipo.
+                  </p>
                 )}
               </div>
             )}
