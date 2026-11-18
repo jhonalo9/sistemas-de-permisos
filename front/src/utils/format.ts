@@ -13,6 +13,73 @@ export function formatearFecha(fecha?: string | Date | null, formato: string = '
   return `${dia}/${mes}/${anio}`;
 }
 
+const MESES_CORTOS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'set', 'oct', 'nov', 'dic'];
+
+function parseFecha(fecha?: string | null): Date | null {
+  if (!fecha) return null;
+  const solo = String(fecha).slice(0, 10);
+  const [anio, mes, dia] = solo.split('-').map(Number);
+  if (!anio || !mes || !dia) return null;
+  const d = new Date(anio, mes - 1, dia, 12);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+export function formatearFechaCorta(fecha?: string | null): string {
+  const d = parseFecha(fecha);
+  if (!d) return '—';
+  return `${String(d.getDate()).padStart(2, '0')} ${MESES_CORTOS[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+export function formatearRangoFechas(inicio?: string | null, fin?: string | null): string {
+  const a = parseFecha(inicio);
+  if (!a) return '—';
+  const b = parseFecha(fin);
+
+  if (!b || a.getTime() === b.getTime()) {
+    return formatearFechaCorta(inicio);
+  }
+
+  const mismoAnio = a.getFullYear() === b.getFullYear();
+  const mismoMes = mismoAnio && a.getMonth() === b.getMonth();
+
+  if (mismoMes) {
+    return `${String(a.getDate()).padStart(2, '0')}–${String(b.getDate()).padStart(2, '0')} ${MESES_CORTOS[b.getMonth()]} ${b.getFullYear()}`;
+  }
+
+  if (mismoAnio) {
+    return `${String(a.getDate()).padStart(2, '0')} ${MESES_CORTOS[a.getMonth()]} – ${String(b.getDate()).padStart(2, '0')} ${MESES_CORTOS[b.getMonth()]} ${b.getFullYear()}`;
+  }
+
+  return `${formatearFechaCorta(inicio)} – ${formatearFechaCorta(fin)}`;
+}
+
+export function formatearCantidad(cantidad?: number | string | null, unidad?: string | null): string {
+  const n = Number(cantidad ?? 0);
+  if (!Number.isFinite(n)) return '—';
+
+  if ((unidad || 'DIAS') === 'HORAS') {
+    if (n <= 0) return 'Pendiente';
+    const totalMin = Math.round(n * 60);
+    const horas = Math.floor(totalMin / 60);
+    const minutos = totalMin % 60;
+    if (horas > 0 && minutos > 0) return `${horas} h ${minutos} min`;
+    if (horas > 0) return `${horas} h`;
+    return `${minutos} min`;
+  }
+
+  const valor = Number.isInteger(n) ? n : Number(n.toFixed(2));
+  return `${valor} ${valor === 1 ? 'día' : 'días'}`;
+}
+
+export function formatearFechaCantidad(
+  inicio?: string | null,
+  fin?: string | null,
+  cantidad?: number | string | null,
+  unidad?: string | null
+): string {
+  return `${formatearRangoFechas(inicio, fin)} · ${formatearCantidad(cantidad, unidad)}`;
+}
+
 
 
 

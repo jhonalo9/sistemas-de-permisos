@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiClient } from '@/services/api';
 import { Badge, Button, Card, useToast } from '@/components/common';
-import { formatearFecha, unidadLabel } from '@/utils/format';
+import { formatearFechaCantidad, asBool } from '@/utils/format';
 import { FileText } from 'lucide-react';
 
 function diasAntiguedad(fecha?: string | null): number {
@@ -83,15 +83,14 @@ export default function BandejaAprobaciones() {
                       <span className="text-right font-medium text-text">{s.tipo_nombre || '—'}</span>
                     </div>
                     <div className="flex justify-between gap-3">
-                      <span className="text-gray-500 shrink-0">Fechas</span>
+                      <span className="text-gray-500 shrink-0">Fecha / cantidad</span>
                       <span className="text-right text-text">
-                        {formatearFecha(s.fecha_inicio)} – {formatearFecha(s.fecha_fin)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between gap-3">
-                      <span className="text-gray-500 shrink-0">Cantidad</span>
-                      <span className="text-right font-medium text-text">
-                        {s.cantidad} {unidadLabel(s.unidad_medida || 'DIAS')}
+                        {formatearFechaCantidad(
+                          s.fecha_inicio,
+                          s.fecha_fin,
+                          s.cantidad,
+                          s.unidad_medida || 'DIAS'
+                        )}
                       </span>
                     </div>
                     <div className="flex justify-between gap-3">
@@ -123,8 +122,7 @@ export default function BandejaAprobaciones() {
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Servidor</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Unidad</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Tipo</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Fechas</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Cantidad</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Fecha / cantidad</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Antigüedad</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Acción</th>
                 </tr>
@@ -137,10 +135,19 @@ export default function BandejaAprobaciones() {
                     <td className="px-4 py-3 text-sm text-text">{s.unidad || '—'}</td>
                     <td className="px-4 py-3 text-sm text-text">{s.tipo_nombre || '—'}</td>
                     <td className="px-4 py-3 text-sm text-text">
-                      {formatearFecha(s.fecha_inicio)} - {formatearFecha(s.fecha_fin)}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-text">
-                      {s.cantidad} {unidadLabel(s.unidad_medida || 'DIAS')}
+                      <div className="flex items-center gap-2">
+                        <span>
+                          {formatearFechaCantidad(
+                            s.fecha_inicio,
+                            s.fecha_fin,
+                            s.cantidad,
+                            s.unidad_medida || 'DIAS'
+                          )}
+                        </span>
+                        {asBool(s.es_urgente) && (
+                          <span className="w-2 h-2 rounded-full bg-red-500 shrink-0" title="Urgente" />
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-sm text-text">
                       {Math.floor(Date.now() / 86400000) - Math.floor(new Date(s.creado_en).getTime() / 86400000)} días

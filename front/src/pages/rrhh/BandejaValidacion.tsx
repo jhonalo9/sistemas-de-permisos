@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiClient } from '@/services/api';
 import { Button, Badge, Card, useToast } from '@/components/common';
-import { formatearFecha, estadoLabel, unidadLabel, asBool, asNum } from '@/utils/format';
+import { formatearFechaCantidad, estadoLabel, asBool, asNum } from '@/utils/format';
 import { FileText, Search } from 'lucide-react';
 
 import { errorMessage } from '@/utils/format';
@@ -152,8 +152,7 @@ export default function BandejaValidacion() {
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Servidor</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Unidad</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Tipo</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Fechas</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Cantidad</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Fecha / cantidad</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Estado</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Urgente</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Acción</th>
@@ -167,9 +166,13 @@ export default function BandejaValidacion() {
                   <td className="px-4 py-3 text-sm text-text">{s.unidad || '—'}</td>
                   <td className="px-4 py-3 text-sm text-text">{s.tipo_nombre || '—'}</td>
                   <td className="px-4 py-3 text-sm text-text">
-                    {formatearFecha(s.fecha_inicio)} - {formatearFecha(s.fecha_fin)}
+                    {formatearFechaCantidad(
+                      s.fecha_inicio,
+                      s.fecha_fin,
+                      s.cantidad,
+                      s.unidad_medida || 'DIAS'
+                    )}
                   </td>
-                  <td className="px-4 py-3 text-sm text-text">{s.cantidad} {unidadLabel(s.unidad_medida || 'DIAS')}</td>
                   <td className="px-4 py-3">
                     <Badge estado={s.estado} />
                   </td>

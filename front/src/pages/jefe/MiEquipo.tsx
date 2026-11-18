@@ -1,7 +1,7 @@
 import React from 'react';
 import { apiClient } from '@/services/api';
 import { Card, useToast } from '@/components/common';
-import { formatearFecha, unidadLabel, asBool } from '@/utils/format';
+import { formatearFecha, formatearFechaCantidad, asBool } from '@/utils/format';
 import { User, Clock, FileText } from 'lucide-react';
 
 export default function MiEquipo() {
@@ -79,8 +79,7 @@ export default function MiEquipo() {
                   <tr>
                     <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase">Servidor</th>
                     <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase">Tipo</th>
-                    <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase">Fechas</th>
-                    <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase">Cantidad</th>
+                    <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase">Fecha / cantidad</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white">
@@ -89,9 +88,13 @@ export default function MiEquipo() {
                       <td className="px-4 py-2 text-sm text-text">{e.servidor}</td>
                       <td className="px-4 py-2 text-sm text-text">{e.tipo_nombre}</td>
                       <td className="px-4 py-2 text-sm text-text">
-                        {formatearFecha(e.fecha_inicio)} - {formatearFecha(e.fecha_fin)}
+                        {formatearFechaCantidad(
+                          e.fecha_inicio,
+                          e.fecha_fin,
+                          e.cantidad,
+                          e.unidad_medida || 'DIAS'
+                        )}
                       </td>
-                      <td className="px-4 py-2 text-sm text-text">{e.cantidad} {unidadLabel(e.unidad_medida || 'DIAS')}</td>
                     </tr>
                   ))}
                 </tbody>

@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiClient } from '@/services/api';
 import { Button, Badge, Card, useToast } from '@/components/common';
-import { formatearFecha, estadoLabel, estadoColor, categoriaLabel, unidadLabel } from '@/utils/format';
+import { formatearFechaCantidad, estadoLabel, estadoColor, categoriaLabel, asBool } from '@/utils/format';
 import { FileText, Search, Filter, Clock } from 'lucide-react';
 
 export default function MisSolicitudes() {
@@ -143,11 +143,16 @@ export default function MisSolicitudes() {
 
                   <div className="flex items-end justify-between gap-3 mt-2 text-sm">
                     <span className="text-gray-600">
-                      {formatearFecha(s.fecha_inicio)} – {formatearFecha(s.fecha_fin)}
+                      {formatearFechaCantidad(
+                        s.fecha_inicio,
+                        s.fecha_fin,
+                        s.cantidad,
+                        s.tipo?.unidad_medida || 'DIAS'
+                      )}
                     </span>
-                    <span className="font-semibold text-text whitespace-nowrap">
-                      {s.cantidad} {unidadLabel(s.tipo?.unidad_medida || 'DIAS')}
-                    </span>
+                    {asBool(s.es_urgente) && (
+                      <span className="w-2 h-2 rounded-full bg-red-500 shrink-0" title="Urgente" />
+                    )}
                   </div>
 
                   <div className="mt-4">
@@ -165,8 +170,7 @@ export default function MisSolicitudes() {
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">N.º solicitud</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Tipo</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Fechas</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Cantidad</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Fecha / cantidad</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Estado</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Acción</th>
                 </tr>
@@ -178,10 +182,19 @@ export default function MisSolicitudes() {
                       <td className="px-4 py-3 text-sm font-medium text-text">{s.nro_solicitud}</td>
                       <td className="px-4 py-3 text-sm text-text">{s.tipo?.nombre || '—'}</td>
                       <td className="px-4 py-3 text-sm text-text">
-                        {formatearFecha(s.fecha_inicio)} - {formatearFecha(s.fecha_fin)}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-text">
-                        {s.cantidad} {unidadLabel(s.tipo?.unidad_medida || 'DIAS')}
+                        <div className="flex items-center gap-2">
+                          <span>
+                            {formatearFechaCantidad(
+                              s.fecha_inicio,
+                              s.fecha_fin,
+                              s.cantidad,
+                              s.tipo?.unidad_medida || 'DIAS'
+                            )}
+                          </span>
+                          {asBool(s.es_urgente) && (
+                            <span className="w-2 h-2 rounded-full bg-red-500 shrink-0" title="Urgente" />
+                          )}
+                        </div>
                       </td>
                       <td className="px-4 py-3">
                         <Badge estado={s.estado} />
@@ -193,7 +206,7 @@ export default function MisSolicitudes() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
+                    <td colSpan={5} className="px-4 py-8 text-center text-gray-500">
                       No se encontraron solicitudes.
                     </td>
                   </tr>

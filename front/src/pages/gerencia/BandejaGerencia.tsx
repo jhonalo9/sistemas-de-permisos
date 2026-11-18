@@ -2,7 +2,7 @@ import React from 'react';
 import { apiClient } from '@/services/api';
 import { Badge, Button, Card, useToast } from '@/components/common';
 import ModalMotivo from '@/components/decisiones/ModalMotivo';
-import { formatearFecha, unidadLabel } from '@/utils/format';
+import { formatearFecha, formatearFechaCantidad, unidadLabel } from '@/utils/format';
 import { Check, ChevronRight, FileText, X } from 'lucide-react';
 
 export default function BandejaGerencia() {
@@ -110,9 +110,13 @@ export default function BandejaGerencia() {
                 </div>
                 <p className="text-sm text-text mt-3">{s.tipo_nombre}</p>
                 <div className="flex justify-between gap-3 mt-2 text-sm text-gray-600">
-                  <span>{formatearFecha(s.fecha_inicio)} – {formatearFecha(s.fecha_fin)}</span>
-                  <span className="font-medium text-text">
-                    {s.cantidad} {unidadLabel(s.categoria === 'LICENCIA' ? 'DIAS' : 'HORAS')}
+                  <span>
+                    {formatearFechaCantidad(
+                      s.fecha_inicio,
+                      s.fecha_fin,
+                      s.cantidad,
+                      s.categoria === 'LICENCIA' ? 'DIAS' : 'HORAS'
+                    )}
                   </span>
                 </div>
               </Card>
@@ -123,7 +127,7 @@ export default function BandejaGerencia() {
             <table className="min-w-full divide-y divide-gray-200 bg-white">
               <thead className="bg-gray-50">
                 <tr>
-                  {['N.º', 'Servidor', 'Unidad', 'Tipo', 'Fechas', 'Cantidad', 'Estado', 'Acción'].map((h) => (
+                  {['N.º', 'Servidor', 'Unidad', 'Tipo', 'Fecha / cantidad', 'Estado', 'Acción'].map((h) => (
                     <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">{h}</th>
                   ))}
                 </tr>
@@ -136,10 +140,12 @@ export default function BandejaGerencia() {
                     <td className="px-4 py-3 text-sm">{s.unidad || '—'}</td>
                     <td className="px-4 py-3 text-sm">{s.tipo_nombre}</td>
                     <td className="px-4 py-3 text-sm">
-                      {formatearFecha(s.fecha_inicio)} – {formatearFecha(s.fecha_fin)}
-                    </td>
-                    <td className="px-4 py-3 text-sm">
-                      {s.cantidad} {unidadLabel(s.categoria === 'LICENCIA' ? 'DIAS' : 'HORAS')}
+                      {formatearFechaCantidad(
+                        s.fecha_inicio,
+                        s.fecha_fin,
+                        s.cantidad,
+                        s.categoria === 'LICENCIA' ? 'DIAS' : 'HORAS'
+                      )}
                     </td>
                     <td className="px-4 py-3"><Badge estado="PENDIENTE_GERENCIA" /></td>
                     <td className="px-4 py-3">

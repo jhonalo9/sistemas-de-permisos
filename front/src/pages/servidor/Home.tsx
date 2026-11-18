@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { apiClient } from '@/services/api';
 import { useAuthStore } from '@/store/auth';
 import { Button, Badge, Card, useToast } from '@/components/common';
-import { formatearFecha, unidadLabel } from '@/utils/format';
+import { formatearFechaCantidad, asBool } from '@/utils/format';
 import { AlertTriangle, Clock, FileText, CheckCircle2, ChevronRight } from 'lucide-react';
 import ModalNuevaSolicitud from '@/components/solicitudes/ModalNuevaSolicitud';
 
@@ -60,73 +60,7 @@ export default function ServidorHome() {
     <div className="space-y-8">
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold text-text tracking-tight">Bienvenido, {usuario?.nombre}</h1>
-        <p className="text-text-muted mt-1">Aquí encontrará un resumen de sus solicitudes.</p>
-      </div>
-
-      {regularizaciones.length > 0 && (
-        <Card className="p-5 border border-amber-200 bg-amber-50">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-start gap-3">
-              <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-              <div>
-                <p className="font-semibold text-amber-900">
-                  Tiene {regularizaciones.length} salida(s) de emergencia por regularizar
-                </p>
-                <p className="text-sm text-amber-800 mt-1">
-                  Complete el tipo definitivo, las horas reales y adjunte la evidencia antes de la fecha límite.
-                </p>
-              </div>
-            </div>
-            <Button
-              variant="primary"
-              className="sm:min-w-[180px]"
-              onClick={() => navigate('/servidor/regularizar')}
-            >
-              Regularizar ahora
-            </Button>
-          </div>
-        </Card>
-      )}
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
-        <Card className="p-5 sm:p-6 card-hover">
-          <div className="flex items-center justify-between gap-4">
-            <div className="min-w-0">
-              <p className="text-xs text-text-muted uppercase tracking-wider font-semibold">Solicitudes pendientes</p>
-              <p className="text-3xl font-bold text-text mt-1 tabular-nums">{pendientes}</p>
-            </div>
-            <div className="stat-icon bg-primary-50 text-primary-600">
-              <Clock className="w-5 h-5" />
-            </div>
-          </div>
-        </Card>
-
-        <Card className="p-5 sm:p-6 card-hover">
-          <div className="flex items-center justify-between gap-4">
-            <div className="min-w-0">
-              <p className="text-xs text-text-muted uppercase tracking-wider font-semibold">Solicitudes aprobadas</p>
-              <p className="text-3xl font-bold text-text mt-1 tabular-nums">{aprobadas}</p>
-            </div>
-            <div className="stat-icon bg-emerald-50 text-emerald-600">
-              <CheckCircle2 className="w-5 h-5" />
-            </div>
-          </div>
-        </Card>
-
-        <Card className="p-5 sm:p-6 card-hover">
-          <div className="flex items-center justify-between gap-4">
-            <div className="min-w-0">
-              <p className="text-xs text-text-muted uppercase tracking-wider font-semibold">Solicitudes del año</p>
-              <p className="text-3xl font-bold text-text mt-1 tabular-nums">{totalSolicitudes}</p>
-            </div>
-            <div className="stat-icon bg-violet-50 text-violet-600">
-              <FileText className="w-5 h-5" />
-            </div>
-          </div>
-        </Card>
-      </div>
-
-      <div className="flex flex-col sm:items-center justify-between gap-3">
+         <div className="flex flex-col sm:items-center justify-between gap-3">
  
 
   <style>{`
@@ -191,11 +125,81 @@ export default function ServidorHome() {
     onClick={() => setNuevaSolicitudOpen(true)}
   >
     <i className="animation" aria-hidden="true" />
-    Nueva solicitud
+    + Nueva solicitud
     <i className="animation" aria-hidden="true" />
   </button>
    
 </div>
+        <p className="text-text-muted mt-1">Aquí encontrará un resumen de sus solicitudes.</p>
+        
+      </div>
+
+      
+
+      {regularizaciones.length > 0 && (
+        <Card className="p-5 border border-amber-200 bg-amber-50">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold text-amber-900">
+                  Tiene {regularizaciones.length} salida(s) de emergencia por regularizar
+                </p>
+                <p className="text-sm text-amber-800 mt-1">
+                  Complete el tipo definitivo, las horas reales y adjunte la evidencia antes de la fecha límite.
+                </p>
+              </div>
+            </div>
+            <Button
+              variant="primary"
+              className="sm:min-w-[180px]"
+              onClick={() => navigate('/servidor/regularizar')}
+            >
+              Regularizar ahora
+            </Button>
+          </div>
+        </Card>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
+        <Card className="p-5 sm:p-6 card-hover">
+          <div className="flex items-center justify-between gap-4">
+            <div className="min-w-0">
+              <p className="text-xs text-text-muted uppercase tracking-wider font-semibold">Solicitudes pendientes</p>
+              <p className="text-3xl font-bold text-text mt-1 tabular-nums">{pendientes}</p>
+            </div>
+            <div className="stat-icon bg-primary-50 text-primary-600">
+              <Clock className="w-5 h-5" />
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-5 sm:p-6 card-hover">
+          <div className="flex items-center justify-between gap-4">
+            <div className="min-w-0">
+              <p className="text-xs text-text-muted uppercase tracking-wider font-semibold">Solicitudes aprobadas</p>
+              <p className="text-3xl font-bold text-text mt-1 tabular-nums">{aprobadas}</p>
+            </div>
+            <div className="stat-icon bg-emerald-50 text-emerald-600">
+              <CheckCircle2 className="w-5 h-5" />
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-5 sm:p-6 card-hover">
+          <div className="flex items-center justify-between gap-4">
+            <div className="min-w-0">
+              <p className="text-xs text-text-muted uppercase tracking-wider font-semibold">Solicitudes del año</p>
+              <p className="text-3xl font-bold text-text mt-1 tabular-nums">{totalSolicitudes}</p>
+            </div>
+            <div className="stat-icon bg-violet-50 text-violet-600">
+              <FileText className="w-5 h-5" />
+            </div>
+          </div>
+        </Card>
+      </div>
+
+     
  <h2 className="text-lg font-semibold text-text">Últimas solicitudes</h2>
 
       {/* Vista de últimas solicitudes para celular */}
@@ -235,10 +239,17 @@ export default function ServidorHome() {
               <p className="font-medium text-text mt-3">{s.tipo?.nombre || '—'}</p>
 
               <div className="flex items-end justify-between gap-3 mt-2 text-sm text-text-muted">
-                <span>{formatearFecha(s.fecha_inicio)} – {formatearFecha(s.fecha_fin)}</span>
-                <span className="font-semibold text-text whitespace-nowrap">
-                  {s.cantidad ?? '—'} {unidadLabel(s.tipo?.unidad_medida || 'DIAS')}
+                <span>
+                  {formatearFechaCantidad(
+                    s.fecha_inicio,
+                    s.fecha_fin,
+                    s.cantidad,
+                    s.tipo?.unidad_medida || 'DIAS'
+                  )}
                 </span>
+                {asBool(s.es_urgente) && (
+                  <span className="w-2 h-2 rounded-full bg-red-500 shrink-0" title="Urgente" />
+                )}
               </div>
             </Card>
           ))
@@ -252,15 +263,14 @@ export default function ServidorHome() {
             <tr>
               <th className="px-4 py-3.5 text-left text-xs font-semibold text-text-muted uppercase tracking-wider">N.º solicitud</th>
               <th className="px-4 py-3.5 text-left text-xs font-semibold text-text-muted uppercase tracking-wider">Tipo</th>
-              <th className="px-4 py-3.5 text-left text-xs font-semibold text-text-muted uppercase tracking-wider">Fechas</th>
-              <th className="px-4 py-3.5 text-left text-xs font-semibold text-text-muted uppercase tracking-wider">Cantidad</th>
+              <th className="px-4 py-3.5 text-left text-xs font-semibold text-text-muted uppercase tracking-wider">Fecha / cantidad</th>
               <th className="px-4 py-3.5 text-left text-xs font-semibold text-text-muted uppercase tracking-wider">Estado</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-border">
             {solicitudes.slice(0, 5).length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-4 py-10 text-center text-sm text-text-muted">
+                <td colSpan={4} className="px-4 py-10 text-center text-sm text-text-muted">
                   No hay solicitudes registradas este año.
                 </td>
               </tr>
@@ -282,10 +292,19 @@ export default function ServidorHome() {
                   <td className="px-4 py-3 text-sm text-text font-medium">{s.nro_solicitud || '—'}</td>
                   <td className="px-4 py-3 text-sm text-text">{s.tipo?.nombre || '—'}</td>
                   <td className="px-4 py-3 text-sm text-text">
-                    {formatearFecha(s.fecha_inicio)} – {formatearFecha(s.fecha_fin)}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-text">
-                    {s.cantidad ?? '—'} {unidadLabel(s.tipo?.unidad_medida || 'DIAS')}
+                    <div className="flex items-center gap-2">
+                      <span>
+                        {formatearFechaCantidad(
+                          s.fecha_inicio,
+                          s.fecha_fin,
+                          s.cantidad,
+                          s.tipo?.unidad_medida || 'DIAS'
+                        )}
+                      </span>
+                      {asBool(s.es_urgente) && (
+                        <span className="w-2 h-2 rounded-full bg-red-500 shrink-0" title="Urgente" />
+                      )}
+                    </div>
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
