@@ -163,7 +163,7 @@ export default function ServidorHome() {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
-        <Card className="p-5 sm:p-6 card-hover">
+        <Card className="p-5 sm:p-6 card-hover shadow-table hover:shadow-table">
           <div className="flex items-center justify-between gap-4">
             <div className="min-w-0">
               <p className="text-xs text-text-muted uppercase tracking-wider font-semibold">Solicitudes pendientes</p>
@@ -175,7 +175,7 @@ export default function ServidorHome() {
           </div>
         </Card>
 
-        <Card className="p-5 sm:p-6 card-hover">
+        <Card className="p-5 sm:p-6 card-hover shadow-table hover:shadow-table">
           <div className="flex items-center justify-between gap-4">
             <div className="min-w-0">
               <p className="text-xs text-text-muted uppercase tracking-wider font-semibold">Solicitudes aprobadas</p>
@@ -187,7 +187,7 @@ export default function ServidorHome() {
           </div>
         </Card>
 
-        <Card className="p-5 sm:p-6 card-hover">
+        <Card className="p-5 sm:p-6 card-hover shadow-table hover:shadow-table">
           <div className="flex items-center justify-between gap-4">
             <div className="min-w-0">
               <p className="text-xs text-text-muted uppercase tracking-wider font-semibold">Solicitudes del año</p>
