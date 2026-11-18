@@ -266,7 +266,7 @@ export default function ServidorHome() {
               <th className="px-4 py-3.5 text-left text-xs font-semibold text-text-muted uppercase tracking-wider">N.º solicitud</th>
               <th className="px-4 py-3.5 text-left text-xs font-semibold text-text-muted uppercase tracking-wider">Tipo</th>
               <th className="px-4 py-3.5 text-left text-xs font-semibold text-text-muted uppercase tracking-wider">Fecha / cantidad</th>
-              <th className="px-4 py-3.5 text-left text-xs font-semibold text-text-muted uppercase tracking-wider">Estado</th>
+              <th className="px-4 py-3.5 text-left text-xs font-semibold text-text-muted uppercase tracking-wider">Estado </th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-border">
@@ -309,9 +309,9 @@ export default function ServidorHome() {
                     </div>
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center justify-between gap-4">
                       <Badge estado={s.estado || 'BORRADOR'} />
-                     
+                      <ChevronRight className="w-4 h-4 text-gray-400 shrink-0" />
                     </div>
                   </td>
                 </tr>
