@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button, Input, Select, TextArea, DropZone, Card, ProgressBar, useToast } from '@/components/common';
 import { calcularDiasEntre, categoriaLabel, formatearCantidad, unidadLabel, asBool, asNum } from '@/utils/format';
-import { AlertTriangle, CalendarDays, Clock, FileText } from 'lucide-react';
+import { AlertTriangle, ArrowUpRight, CalendarDays, Clock, FileText } from 'lucide-react';
 
 const schema = z
   .object({
@@ -433,68 +433,68 @@ export default function NuevaSolicitud({ embedded = false, onClose }: NuevaSolic
     const conteoDias = tipos.filter((t) => t.unidad_medida === 'DIAS').length;
 
     return (
-      <div className={embedded ? 'w-full' : 'max-w-3xl mx-auto space-y-6'}>
-        {!embedded && (
+      <div className={embedded ? 'w-full' : 'max-w-3xl mx-auto'}>
+        <div className="space-y-6">
           <div>
-            <h1 className="text-2xl font-bold text-text tracking-tight">Nueva solicitud</h1>
-            <p className="text-text-muted mt-1">
-              Primero elija cómo se medirá su permiso o licencia.
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary-600 mb-2">
+              Nueva solicitud
             </p>
+            <h2 className="text-3xl sm:text-4xl font-bold text-text leading-tight">
+              <span className="block">¿Cómo se medirá</span>
+              <span className="block">su solicitud?</span>
+            </h2>
           </div>
-        )}
 
-        <Card>
-          <div className="space-y-5">
-            <div>
-              <h2 className="text-lg font-semibold text-text">
-                ¿Cómo se medirá su solicitud?
-              </h2>
-              <p className="text-sm text-text-muted mt-1">
-                Elija una opción para mostrar solo los tipos de solicitud compatibles.
-              </p>
-            </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
+            <button
+              type="button"
+              onClick={() => elegirUnidad('HORAS')}
+              className="group relative text-left rounded-[28px] bg-[#1B4F9C] p-6 sm:p-7 min-h-[300px] flex flex-col justify-between text-white shadow-[0_18px_40px_-14px_rgba(27,79,156,0.55)] hover:-translate-y-1 hover:shadow-[0_24px_50px_-14px_rgba(27,79,156,0.7)] transition-all duration-300"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1.5 text-sm font-semibold">
+                  <Clock className="w-4 h-4" />
+                  Por horas
+                </span>
+                <span className="w-10 h-10 rounded-full bg-white text-[#1B4F9C] flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                  <ArrowUpRight className="w-5 h-5" />
+                </span>
+              </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <button
-                type="button"
-                onClick={() => elegirUnidad('HORAS')}
-                className="group text-left p-5 rounded-2xl border-2 border-border bg-card hover:border-primary-400 hover:bg-primary-50/40 transition-all"
-              >
-                <div className="w-12 h-12 rounded-xl bg-primary-50 text-primary-600 flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
-                  <Clock className="w-6 h-6" />
-                </div>
-                <p className="text-lg font-semibold text-text">PAPELETA </p>
-                {/*<p className="text-sm text-text-muted mt-1">
-                  Permiso por horas: Salida y retorno el mismo día. Ideal para trámites, salud o asuntos personales.
-                </p>*/}
-                <p className="text-xs font-medium text-primary-600 mt-4">
-                  {conteoHoras} tipo(s) disponible(s)
-                </p>
-              </button>
+              <div className="mt-10">
+                <p className="text-7xl font-bold leading-none tabular-nums">{conteoHoras}</p>
+                <p className="text-xl font-bold mt-4">Papeleta</p>
+                <p className="text-sm text-white/80">tipos disponibles</p>
+              </div>
+            </button>
 
-              <button
-                type="button"
-                onClick={() => elegirUnidad('DIAS')}
-                className="group text-left p-5 rounded-2xl border-2 border-border bg-card hover:border-primary-400 hover:bg-primary-50/40 transition-all"
-              >
-                <div className="w-12 h-12 rounded-xl bg-primary-50 text-primary-600 flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
-                  <CalendarDays className="w-6 h-6" />
-                </div>
-                <p className="text-lg font-semibold text-text">Licencia o permiso por días</p>
-                {/*<p className="text-sm text-text-muted mt-1">
-                  Solicitudes que abarcan días completos, con fechas de inicio y fin.
-                </p>*/}
-                <p className="text-xs font-medium text-primary-600 mt-4">
-                  {conteoDias} tipo(s) disponible(s)
-                </p>
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => elegirUnidad('DIAS')}
+              className="group relative text-left rounded-[28px] bg-[#F5B915] p-6 sm:p-7 min-h-[300px] flex flex-col justify-between text-[#0F172A] shadow-[0_18px_40px_-14px_rgba(245,185,21,0.55)] hover:-translate-y-1 hover:shadow-[0_24px_50px_-14px_rgba(245,185,21,0.7)] transition-all duration-300"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-black/10 px-3 py-1.5 text-sm font-semibold">
+                  <CalendarDays className="w-4 h-4" />
+                  Por días
+                </span>
+                <span className="w-10 h-10 rounded-full bg-[#0F2A4A] text-white flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                  <ArrowUpRight className="w-5 h-5" />
+                </span>
+              </div>
 
-            <p className="text-center text-xs text-text-muted">
-              Podrá cambiar esta opción antes de enviar la solicitud.
-            </p>
+              <div className="mt-10">
+                <p className="text-7xl font-bold leading-none tabular-nums">{conteoDias}</p>
+                <p className="text-xl font-bold mt-4">Licencia o permiso por días</p>
+                <p className="text-sm text-black/60">tipos disponibles</p>
+              </div>
+            </button>
           </div>
-        </Card>
+
+          <p className="text-center text-sm text-text-muted">
+            Podrá cambiar esta opción antes de enviar la solicitud.
+          </p>
+        </div>
       </div>
     );
   }
@@ -547,8 +547,7 @@ export default function NuevaSolicitud({ embedded = false, onClose }: NuevaSolic
 
           <div>
             <Select
-              label="Tipo de permiso"
-              className="!min-h-[58px] !text-lg !rounded-2xl"
+              label="Tipo de permiso o licencia"
               options={tiposDisponibles.map((t) => ({ value: t.id_tipo, label: t.nombre }))}
               value={idTipo || ''}
               onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -724,7 +723,7 @@ export default function NuevaSolicitud({ embedded = false, onClose }: NuevaSolic
               </div>
               {tipoSeleccionado.unidad_medida === 'HORAS' && (
                 <div>
-                  <label className="label">¿El servidor retornará?</label>
+                  <label className="label">¿Retornará?</label>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <button
                       type="button"
@@ -755,21 +754,20 @@ export default function NuevaSolicitud({ embedded = false, onClose }: NuevaSolic
                       </p>
                     </button>
                   </div>
-                  <p className="helper-text">
-                    Las horas reales de salida y retorno serán registradas por Control de Personal.
-                  </p>
+                 
                 </div>
               )}
             </div>
           )}
 
           {tipoSeleccionado && tipoSeleccionado.unidad_medida === 'HORAS' ? (
-            <div className="rounded-xl border border-dashed border-primary-200 bg-primary-50/40 p-4">
+            <>{/*<div className="rounded-xl border border-dashed border-primary-200 bg-primary-50/40 p-4">
               <p className="text-sm font-semibold text-text">Duración pendiente de Control</p>
               <p className="text-sm text-text-muted mt-1">
                 El saldo se calculará con las horas reales de salida y retorno.
               </p>
-            </div>
+            </div>*/}</>
+            
           ) : tipoSeleccionado && (
             <div>
               <label className="label">Cantidad calculada</label>
