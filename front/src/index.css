@@ -118,7 +118,7 @@
   }
 
   .badge {
-    @apply inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold tracking-wide whitespace-nowrap;
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold tracking-wide uppercase whitespace-nowrap;
   }
 
   .card {

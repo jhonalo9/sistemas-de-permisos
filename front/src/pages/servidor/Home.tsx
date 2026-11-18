@@ -75,10 +75,9 @@ export default function ServidorHome() {
     background: #1B4F9C;
     min-width: 200px;
     border: 0;
-    border-radius: 4px;
+    border-radius: 10px;
     /* Sombra más notoria */
-    box-shadow: 0 6px 16px rgba(15, 45, 90, 0.55),
-                0 2px 6px rgba(0, 0, 0, 0.28);
+    box-shadow: 0 0 0 rgba(0, 0, 0, 0.2), 0 4px 12px rgba(15, 45, 90, 0.5);
     box-sizing: border-box;
     padding: 16px 20px;
     color: #fff;
@@ -104,22 +103,10 @@ export default function ServidorHome() {
   }
   .btn-uiverse .animation {
     border-radius: 100%;
-    animation: ripple 0.8s linear infinite;
+    animation: ripple 0.1s linear infinite;
   }
-  @keyframes ripple {
-    0% {
-      box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.1),
-                  0 0 0 20px rgba(255, 255, 255, 0.1),
-                  0 0 0 40px rgba(255, 255, 255, 0.1),
-                  0 0 0 60px rgba(255, 255, 255, 0.1);
-    }
-    100% {
-      box-shadow: 0 0 0 20px rgba(255, 255, 255, 0.1),
-                  0 0 0 40px rgba(255, 255, 255, 0.1),
-                  0 0 0 60px rgba(255, 255, 255, 0.1),
-                  0 0 0 80px rgba(255, 255, 255, 0);
-    }
-  }
+ 
+  
 `}</style>
 
   <button
@@ -201,6 +188,7 @@ export default function ServidorHome() {
       </div>
 
      
+ <div className="space-y-3">
  <div>
    <h2 className="text-lg font-semibold text-text">Últimas solicitudes</h2>
    <div className="flex items-center justify-between gap-3 mt-1">
@@ -208,7 +196,7 @@ export default function ServidorHome() {
      <button
        type="button"
        onClick={() => navigate('/servidor/mis-solicitudes')}
-       className="inline-flex items-center gap-1 text-sm font-medium text-primary-600 hover:text-primary-700 hover:underline"
+       className="inline-flex items-center gap-1 text-base font-bold text-primary-700 hover:text-primary-800 hover:underline"
      >
        Ver todas
        <ChevronRight className="w-4 h-4" />
@@ -331,6 +319,7 @@ export default function ServidorHome() {
             )}
           </tbody>
         </table>
+      </div>
       </div>
 
       <ModalNuevaSolicitud

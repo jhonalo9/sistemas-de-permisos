@@ -1,5 +1,5 @@
 import React from 'react';
-import { estadoColor, estadoLabel, errorMessage } from '@/utils/format';
+import { estadoBadge, estadoLabel, errorMessage } from '@/utils/format';
 import { ToastContainer, useToast, ToastProvider } from './Toast';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -29,8 +29,10 @@ interface BadgeProps {
 }
 
 export function Badge({ estado, className = '' }: BadgeProps) {
+  const estilos = estadoBadge(estado);
   return (
-    <span className={`badge ${estadoColor(estado)} ${className}`}>
+    <span className={`badge ${estilos.bg} ${estilos.text} ${className}`}>
+      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${estilos.dot}`} />
       {estadoLabel(estado)}
     </span>
   );
