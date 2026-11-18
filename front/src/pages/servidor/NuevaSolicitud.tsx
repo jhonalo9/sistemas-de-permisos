@@ -302,11 +302,6 @@ export default function NuevaSolicitud({ embedded = false, onClose }: NuevaSolic
     reiniciarTipo();
   };
 
-  const cambiarUnidad = () => {
-    setUnidadSeleccionada(null);
-    reiniciarTipo();
-  };
-
   const requiereSustento =
     tipoSeleccionado?.unidad_medida !== 'HORAS' && asBool(tipoSeleccionado?.requiere_sustento);
   const tieneSustento = archivos.length > 0 || adjuntosExistentes.length > 0;
@@ -516,32 +511,28 @@ export default function NuevaSolicitud({ embedded = false, onClose }: NuevaSolic
 
       <Card>
         <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl bg-slate-50 border border-border">
-            <div className="flex items-center gap-3">
-              <span className="w-9 h-9 rounded-lg bg-primary-50 text-primary-600 flex items-center justify-center shrink-0">
-                {unidadSeleccionada === 'HORAS' ? (
-                  <Clock className="w-4 h-4" />
-                ) : (
-                  <CalendarDays className="w-4 h-4" />
-                )}
-              </span>
-              <div>
-                <p className="text-xs uppercase tracking-wide text-text-muted">
-                  Tipo de solicitud
-                </p>
-                <p className="text-sm font-semibold text-text">
-                  {unidadSeleccionada === 'HORAS'
-                    ? 'Permiso por horas'
-                    : 'Licencia o permiso por días'}
-                </p>
-              </div>
-            </div>
+          <div className="grid w-full grid-cols-2 gap-1 rounded-2xl bg-slate-100 p-1 sm:w-80">
             <button
               type="button"
-              onClick={cambiarUnidad}
-              className="text-sm font-medium text-primary-600 hover:underline self-start sm:self-auto"
+              onClick={() => unidadSeleccionada !== 'HORAS' && elegirUnidad('HORAS')}
+              className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition-all ${
+                unidadSeleccionada === 'HORAS'
+                  ? 'bg-white text-text shadow-sm border border-border/70'
+                  : 'text-text-muted hover:text-text'
+              }`}
             >
-              Cambiar a {unidadSeleccionada === 'HORAS' ? 'días' : 'horas'}
+              Por horas
+            </button>
+            <button
+              type="button"
+              onClick={() => unidadSeleccionada !== 'DIAS' && elegirUnidad('DIAS')}
+              className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition-all ${
+                unidadSeleccionada === 'DIAS'
+                  ? 'bg-white text-text shadow-sm border border-border/70'
+                  : 'text-text-muted hover:text-text'
+              }`}
+            >
+              Por días
             </button>
           </div>
 
