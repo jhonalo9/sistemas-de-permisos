@@ -2,32 +2,29 @@ import React, { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiClient } from '@/services/api';
 import { useAuthStore } from '@/store/auth';
-import { Button, Badge, Card, ProgressBar, useToast } from '@/components/common';
+import { Button, Badge, Card, useToast } from '@/components/common';
 import { formatearFecha, unidadLabel } from '@/utils/format';
-import { AlertTriangle, Clock, FileText, CheckCircle2, BarChart3, LayoutGrid, ChevronRight } from 'lucide-react';
-import GraficoSemicirculo from '@/components/saldos/GraficoSemicirculo';
+import { AlertTriangle, Clock, FileText, CheckCircle2, ChevronRight } from 'lucide-react';
 import ModalNuevaSolicitud from '@/components/solicitudes/ModalNuevaSolicitud';
 
 export default function ServidorHome() {
   const { usuario } = useAuthStore();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [saldos, setSaldos] = React.useState<any[]>([]);
   const [solicitudes, setSolicitudes] = React.useState<any[]>([]);
+  const [totalSolicitudes, setTotalSolicitudes] = React.useState(0);
   const [regularizaciones, setRegularizaciones] = React.useState<any[]>([]);
-  const [vistaSaldos, setVistaSaldos] = React.useState<'tarjetas' | 'graficos'>('tarjetas');
   const [nuevaSolicitudOpen, setNuevaSolicitudOpen] = React.useState(false);
   const [loading, setLoading] = React.useState(true);
 
   const cargarDatos = useCallback(async () => {
     try {
-      const [sRes, solRes, regRes] = await Promise.all([
-        apiClient<any>('/saldos/mios'),
+      const [solRes, regRes] = await Promise.all([
         apiClient<any>('/solicitudes?anio=' + new Date().getFullYear()),
         apiClient<any>('/regularizaciones'),
       ]);
-      setSaldos(sRes.data || []);
       setSolicitudes(solRes.data || []);
+      setTotalSolicitudes(Number((solRes as any).total ?? (solRes.data || []).length));
       setRegularizaciones(regRes.data || []);
     } catch (e: any) {
       toast.error('Error al cargar datos', e.mensaje);
@@ -50,6 +47,9 @@ export default function ServidorHome() {
   }
 
   const pendientes = solicitudes.filter((s) => s.estado === 'PENDIENTE' || s.estado === 'OBSERVADA').length;
+  const aprobadas = solicitudes.filter((s) =>
+    ['APROBADA_JEFE', 'APROBADA', 'APROBADA_RRHH', 'PENDIENTE_GERENCIA', 'EN_CURSO', 'EJECUTADA'].includes(s.estado)
+  ).length;
 
   const abrirDetalle = (id?: number | string) => {
     if (id === undefined || id === null || id === '') return;
@@ -60,7 +60,7 @@ export default function ServidorHome() {
     <div className="space-y-8">
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold text-text tracking-tight">Bienvenido, {usuario?.nombre}</h1>
-        <p className="text-text-muted mt-1">Aquí encontrará un resumen de sus solicitudes y saldos.</p>
+        <p className="text-text-muted mt-1">Aquí encontrará un resumen de sus solicitudes.</p>
       </div>
 
       {regularizaciones.length > 0 && (
@@ -104,10 +104,8 @@ export default function ServidorHome() {
         <Card className="p-5 sm:p-6 card-hover">
           <div className="flex items-center justify-between gap-4">
             <div className="min-w-0">
-              <p className="text-xs text-text-muted uppercase tracking-wider font-semibold">Saldo horas permiso personal</p>
-              <p className="text-3xl font-bold text-text mt-1 tabular-nums">
-                {saldos.find((s) => s.tipo?.categoria === 'PERMISO')?.asignado || 0}h
-              </p>
+              <p className="text-xs text-text-muted uppercase tracking-wider font-semibold">Solicitudes aprobadas</p>
+              <p className="text-3xl font-bold text-text mt-1 tabular-nums">{aprobadas}</p>
             </div>
             <div className="stat-icon bg-emerald-50 text-emerald-600">
               <CheckCircle2 className="w-5 h-5" />
@@ -118,10 +116,8 @@ export default function ServidorHome() {
         <Card className="p-5 sm:p-6 card-hover">
           <div className="flex items-center justify-between gap-4">
             <div className="min-w-0">
-              <p className="text-xs text-text-muted uppercase tracking-wider font-semibold">Saldo días licencia sin goce</p>
-              <p className="text-3xl font-bold text-text mt-1 tabular-nums">
-                {saldos.find((s) => s.tipo?.categoria === 'LICENCIA' && !s.tipo?.con_goce)?.asignado || 0}d
-              </p>
+              <p className="text-xs text-text-muted uppercase tracking-wider font-semibold">Solicitudes del año</p>
+              <p className="text-3xl font-bold text-text mt-1 tabular-nums">{totalSolicitudes}</p>
             </div>
             <div className="stat-icon bg-violet-50 text-violet-600">
               <FileText className="w-5 h-5" />
@@ -303,56 +299,6 @@ export default function ServidorHome() {
           </tbody>
         </table>
       </div>
-
-      {saldos.length > 0 && (
-        <div>
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-            <h2 className="text-lg font-semibold text-text">Mis saldos por tipo</h2>
-            <Button
-              variant="outline"
-              onClick={() => setVistaSaldos((vista) => (vista === 'tarjetas' ? 'graficos' : 'tarjetas'))}
-              aria-pressed={vistaSaldos === 'graficos'}
-            >
-              {vistaSaldos === 'tarjetas' ? (
-                <>
-                  <BarChart3 className="w-4 h-4" />
-                  Ver gráficas
-                </>
-              ) : (
-                <>
-                  <LayoutGrid className="w-4 h-4" />
-                  Ver tarjetas
-                </>
-              )}
-            </Button>
-          </div>
-
-          {vistaSaldos === 'tarjetas' ? (
-            <div className="space-y-4">
-              {saldos.map((s) => (
-                <Card key={s.id_saldo} className="p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="font-medium text-text">{s.tipo?.nombre}</span>
-                    <span className="text-sm font-semibold text-primary">
-                      {s.usado}/{s.asignado} {unidadLabel(s.tipo?.unidad_medida || 'DIAS')}
-                    </span>
-                  </div>
-                  <ProgressBar valor={s.usado} maximo={s.asignado} />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Disponible: {s.asignado - s.usado} {unidadLabel(s.tipo?.unidad_medida || 'DIAS')}
-                  </p>
-                </Card>
-              ))}
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {saldos.map((s) => (
-                <GraficoSemicirculo key={s.id_saldo} saldo={s} />
-              ))}
-            </div>
-          )}
-        </div>
-      )}
 
       <ModalNuevaSolicitud
         isOpen={nuevaSolicitudOpen}

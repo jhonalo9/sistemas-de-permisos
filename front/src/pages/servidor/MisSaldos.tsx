@@ -1,14 +1,16 @@
 import React from 'react';
 import { apiClient } from '@/services/api';
-import { Card, ProgressBar, useToast } from '@/components/common';
+import { Button, Card, ProgressBar, useToast } from '@/components/common';
+import GraficoSemicirculo from '@/components/saldos/GraficoSemicirculo';
 import { estadoLabel, unidadLabel } from '@/utils/format';
-import { Wallet, Clock, CheckCircle2, CalendarDays, AlertTriangle } from 'lucide-react';
+import { Wallet, Clock, CheckCircle2, CalendarDays, AlertTriangle, BarChart3, LayoutGrid } from 'lucide-react';
 
 type Tab = 'anuales' | 'mensuales';
 
 export default function MisSaldos() {
   const { toast } = useToast();
   const [tab, setTab] = React.useState<Tab>('anuales');
+  const [vistaAnual, setVistaAnual] = React.useState<'tarjetas' | 'graficos'>('tarjetas');
   const [saldos, setSaldos] = React.useState<any[]>([]);
   const [mensuales, setMensuales] = React.useState<any[]>([]);
   const [anio, setAnio] = React.useState(String(new Date().getFullYear()));
@@ -76,15 +78,34 @@ export default function MisSaldos() {
         </div>
 
         {tab === 'anuales' ? (
-          <select
-            value={anio}
-            onChange={(e) => setAnio(e.target.value)}
-            className="input-field w-36"
-          >
-            {[2024, 2025, 2026, 2027].map((a) => (
-              <option key={a} value={String(a)}>{a}</option>
-            ))}
-          </select>
+          <div className="flex items-center gap-2">
+            <select
+              value={anio}
+              onChange={(e) => setAnio(e.target.value)}
+              className="input-field w-36"
+            >
+              {[2024, 2025, 2026, 2027].map((a) => (
+                <option key={a} value={String(a)}>{a}</option>
+              ))}
+            </select>
+            <Button
+              variant="outline"
+              onClick={() => setVistaAnual((vista) => (vista === 'tarjetas' ? 'graficos' : 'tarjetas'))}
+              aria-pressed={vistaAnual === 'graficos'}
+            >
+              {vistaAnual === 'tarjetas' ? (
+                <>
+                  <BarChart3 className="w-4 h-4" />
+                  Ver gráficas
+                </>
+              ) : (
+                <>
+                  <LayoutGrid className="w-4 h-4" />
+                  Ver tarjetas
+                </>
+              )}
+            </Button>
+          </div>
         ) : (
           <input
             type="month"
@@ -100,7 +121,17 @@ export default function MisSaldos() {
           <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
         </div>
       ) : tab === 'anuales' ? (
-        saldos.length > 0 ? (
+        saldos.length === 0 ? (
+          <div className="text-center py-16 text-gray-500">
+            <p>No hay saldos anuales registrados para este año.</p>
+          </div>
+        ) : vistaAnual === 'graficos' ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {saldos.map((s) => (
+              <GraficoSemicirculo key={s.id_saldo} saldo={s} />
+            ))}
+          </div>
+        ) : (
           <div className="space-y-4">
             {saldos.map((s) => {
               const Icon = iconos[s.tipo?.categoria] || CheckCircle2;
@@ -142,10 +173,6 @@ export default function MisSaldos() {
                 </Card>
               );
             })}
-          </div>
-        ) : (
-          <div className="text-center py-16 text-gray-500">
-            <p>No hay saldos anuales registrados para este año.</p>
           </div>
         )
       ) : (
