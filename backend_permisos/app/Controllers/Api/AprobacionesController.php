@@ -15,6 +15,44 @@ class AprobacionesController extends BaseApiController
         return ApiResponse::ok($res['items'], 200, ['total' => $res['total'], 'page' => $p['page'], 'per_page' => $p['per_page']]);
     }
 
+    public function metricas()
+    {
+        $db = db_connect();
+        $idJefe = (int) $this->idServidor();
+
+        $porRevisar = (int) $db->table('permiso_solicitud_papeleta')
+            ->where('estado', 'PENDIENTE')
+            ->where('id_jefe_solicitud', $idJefe)
+            ->countAllResults();
+
+        $personasEquipo = (int) $db->table('permiso_servidor')
+            ->where('id_jefe', $idJefe)
+            ->where('estado', 'ACTIVO')
+            ->countAllResults();
+
+        $inicioSemana = date('Y-m-d', strtotime('monday this week'));
+        $finSemana    = date('Y-m-d', strtotime('sunday this week'));
+
+        $ausencias = (int) $db->table('permiso_solicitud_papeleta s')
+            ->join('permiso_servidor sv', 'sv.id_servidor = s.id_servidor')
+            ->where('sv.id_jefe', $idJefe)
+            ->whereIn('s.estado', [
+                'APROBADA_JEFE', 'APROBADA', 'APROBADA_RRHH',
+                'PENDIENTE_GERENCIA', 'EN_CURSO', 'EJECUTADA',
+            ])
+            ->where('s.fecha_inicio <=', $finSemana)
+            ->where('s.fecha_fin >=', $inicioSemana)
+            ->countAllResults();
+
+        return ApiResponse::ok([
+            'por_revisar'       => $porRevisar,
+            'personas_equipo'   => $personasEquipo,
+            'ausencias_semana'  => $ausencias,
+            'inicio_semana'     => $inicioSemana,
+            'fin_semana'        => $finSemana,
+        ]);
+    }
+
     public function detalle(int $id)
     {
         $s = (new SolicitudModel())->detalleCompleto($id);

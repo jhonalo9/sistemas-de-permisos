@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { apiClient } from '@/services/api';
 import { Badge, Button, Card, useToast } from '@/components/common';
 import { formatearFechaCantidad, asBool } from '@/utils/format';
-import { FileText } from 'lucide-react';
+import { FileText, ClipboardList, Users, CalendarDays } from 'lucide-react';
 
 function diasAntiguedad(fecha?: string | null): number {
   if (!fecha) return 0;
@@ -16,13 +16,30 @@ export default function BandejaAprobaciones() {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [solicitudes, setSolicitudes] = React.useState<any[]>([]);
+  const [metricas, setMetricas] = React.useState({
+    por_revisar: 0,
+    personas_equipo: 0,
+    ausencias_semana: 0,
+  });
   const [loading, setLoading] = React.useState(true);
 
   const cargar = async () => {
     setLoading(true);
     try {
-      const res = await apiClient<any>('/aprobaciones/pendientes');
+      const [res, met] = await Promise.all([
+        apiClient<any>('/aprobaciones/pendientes'),
+        apiClient<any>('/aprobaciones/metricas'),
+      ]);
       setSolicitudes(res.data || []);
+      const datosMetricas = met.data || {
+        por_revisar: 0,
+        personas_equipo: 0,
+        ausencias_semana: 0,
+      };
+      if (typeof (res as any).total === 'number') {
+        datosMetricas.por_revisar = (res as any).total;
+      }
+      setMetricas(datosMetricas);
     } catch (e: any) {
       toast.error('Error al cargar aprobaciones', e.mensaje);
     } finally {
@@ -40,6 +57,44 @@ export default function BandejaAprobaciones() {
       <div>
         <h1 className="text-2xl font-bold text-text">Bandeja de aprobaciones</h1>
         <p className="text-gray-600">Solicitudes pendientes de su equipo a la espera de su decisión.</p>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+        <Card className="p-5 sm:p-6 card-hover shadow-table hover:shadow-table">
+          <div className="flex items-center justify-between gap-4">
+            <div className="min-w-0">
+              <p className="text-xs text-text-muted uppercase tracking-wider font-semibold">Por revisar</p>
+              <p className="text-3xl font-bold text-text mt-1 tabular-nums">{metricas.por_revisar}</p>
+            </div>
+            <div className="stat-icon bg-primary-50 text-primary-600">
+              <ClipboardList className="w-5 h-5" />
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-5 sm:p-6 card-hover shadow-table hover:shadow-table">
+          <div className="flex items-center justify-between gap-4">
+            <div className="min-w-0">
+              <p className="text-xs text-text-muted uppercase tracking-wider font-semibold">Personas en su equipo</p>
+              <p className="text-3xl font-bold text-text mt-1 tabular-nums">{metricas.personas_equipo}</p>
+            </div>
+            <div className="stat-icon bg-emerald-50 text-emerald-600">
+              <Users className="w-5 h-5" />
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-5 sm:p-6 card-hover shadow-table hover:shadow-table">
+          <div className="flex items-center justify-between gap-4">
+            <div className="min-w-0">
+              <p className="text-xs text-text-muted uppercase tracking-wider font-semibold">Ausencias esta semana</p>
+              <p className="text-3xl font-bold text-text mt-1 tabular-nums">{metricas.ausencias_semana}</p>
+            </div>
+            <div className="stat-icon bg-violet-50 text-violet-600">
+              <CalendarDays className="w-5 h-5" />
+            </div>
+          </div>
+        </Card>
       </div>
 
       {loading ? (

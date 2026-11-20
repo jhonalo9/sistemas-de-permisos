@@ -51,6 +51,7 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], static function ($
         // ---- JEFE ----
         $r->group('aprobaciones', ['filter' => 'role:JEFE,ADMIN'], static function ($r) {
             $r->get('pendientes',      'AprobacionesController::pendientes');
+            $r->get('metricas',        'AprobacionesController::metricas');
             $r->get('(:num)',          'AprobacionesController::detalle/$1');
             $r->post('(:num)/aprobar', 'AprobacionesController::aprobar/$1');
             $r->post('(:num)/observar', 'AprobacionesController::observar/$1');
