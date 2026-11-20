@@ -14,7 +14,10 @@ export default function MisSolicitudes() {
   const [filtroAnio, setFiltroAnio] = React.useState(String(new Date().getFullYear()));
   const [busqueda, setBusqueda] = React.useState('');
   const [nuevaSolicitudOpen, setNuevaSolicitudOpen] = React.useState(false);
+  const [pagina, setPagina] = React.useState(1);
   const [loading, setLoading] = React.useState(true);
+
+  const POR_PAGINA = 10;
 
   const estados = [
     'BORRADOR', 'REGULARIZAR', 'PENDIENTE', 'OBSERVADA', 'APROBADA_JEFE',
@@ -60,6 +63,19 @@ export default function MisSolicitudes() {
 
     return texto.includes(q);
   });
+
+  const totalPaginas = Math.max(1, Math.ceil(filtradas.length / POR_PAGINA));
+  const paginaActual = Math.min(pagina, totalPaginas);
+  const inicioPagina = (paginaActual - 1) * POR_PAGINA;
+  const paginadas = filtradas.slice(inicioPagina, inicioPagina + POR_PAGINA);
+
+  React.useEffect(() => {
+    setPagina(1);
+  }, [filtroEstado, filtroAnio, busqueda]);
+
+  React.useEffect(() => {
+    if (pagina > totalPaginas) setPagina(totalPaginas);
+  }, [pagina, totalPaginas]);
 
   const abrirSolicitud = (s: any) => {
     if (s.estado === 'BORRADOR') {
@@ -141,12 +157,12 @@ export default function MisSolicitudes() {
         <>
           {/* Vista para celular */}
           <div className="md:hidden space-y-3">
-            {filtradas.length === 0 ? (
+            {paginadas.length === 0 ? (
               <Card className="text-center py-8">
                 <p className="text-sm text-gray-500">No se encontraron solicitudes.</p>
               </Card>
             ) : (
-              filtradas.map((s) => (
+              paginadas.map((s) => (
                 <Card
                   key={s.id_solicitud}
                   className="p-4 cursor-pointer hover:border-primary/40 transition-colors"
@@ -204,8 +220,8 @@ export default function MisSolicitudes() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-border">
-                {filtradas.length > 0 ? (
-                  filtradas.map((s) => (
+                {paginadas.length > 0 ? (
+                  paginadas.map((s) => (
                     <tr
                       key={s.id_solicitud}
                       className="hover:bg-slate-50/80 transition-colors cursor-pointer"
@@ -253,6 +269,34 @@ export default function MisSolicitudes() {
               </tbody>
             </table>
           </div>
+
+          {totalPaginas > 1 && (
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+              <p className="text-sm text-text-muted">
+                Mostrando {inicioPagina + 1}–
+                {Math.min(inicioPagina + POR_PAGINA, filtradas.length)} de {filtradas.length}
+              </p>
+              <div className="flex items-center justify-center gap-2">
+                <Button
+                  variant="outline"
+                  disabled={paginaActual === 1}
+                  onClick={() => setPagina((p) => Math.max(1, p - 1))}
+                >
+                  Anterior
+                </Button>
+                <span className="text-sm font-medium text-text px-2">
+                  Página {paginaActual} de {totalPaginas}
+                </span>
+                <Button
+                  variant="outline"
+                  disabled={paginaActual === totalPaginas}
+                  onClick={() => setPagina((p) => Math.min(totalPaginas, p + 1))}
+                >
+                  Siguiente
+                </Button>
+              </div>
+            </div>
+          )}
         </>
       )}
 
