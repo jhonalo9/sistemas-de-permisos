@@ -431,9 +431,7 @@ export default function NuevaSolicitud({ embedded = false, onClose }: NuevaSolic
       <div className={embedded ? 'w-full' : 'max-w-3xl mx-auto'}>
         <div className="space-y-6">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary-600 mb-2">
-              Nueva solicitud
-            </p>
+            
             <h2 className="text-3xl sm:text-4xl font-bold text-text leading-tight">
               <span className="block">¿Cómo se medirá</span>
               <span className="block">su solicitud?</span>
@@ -480,7 +478,7 @@ export default function NuevaSolicitud({ embedded = false, onClose }: NuevaSolic
 
               <div className="mt-10">
                 <p className="text-7xl font-bold leading-none tabular-nums">{conteoDias}</p>
-                <p className="text-xl font-bold mt-4">Licencia o permiso por días</p>
+                <p className="text-xl font-bold mt-4">Licencia/Permiso</p>
                 <p className="text-sm text-black/60">tipos disponibles</p>
               </div>
             </button>
@@ -511,7 +509,7 @@ export default function NuevaSolicitud({ embedded = false, onClose }: NuevaSolic
 
       <Card>
         <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-6">
-          <div className="grid w-full grid-cols-2 gap-1 rounded-2xl bg-slate-100 p-1 sm:w-80">
+          <div className="grid w-full grid-cols-2 gap-1 rounded-2xl bg-slate-100 p-1 sm:w-50">
             <button
               type="button"
               onClick={() => unidadSeleccionada !== 'HORAS' && elegirUnidad('HORAS')}
@@ -559,12 +557,20 @@ export default function NuevaSolicitud({ embedded = false, onClose }: NuevaSolic
                         <span
                           key={i}
                           className={`h-2 flex-1 rounded-full transition-colors ${
-                            i < segmentosLlenos ? 'bg-primary' : 'bg-slate-200'
+                            i < segmentosLlenos
+                              ? usoSeleccionado.alcanzado
+                                ? 'bg-red-500'
+                                : 'bg-primary'
+                              : 'bg-slate-200'
                           }`}
                         />
                       ))}
                     </div>
-                    <span className="text-sm text-text-muted whitespace-nowrap">
+                    <span
+                      className={`text-sm whitespace-nowrap ${
+                        usoSeleccionado.alcanzado ? 'font-semibold text-red-600' : 'text-text-muted'
+                      }`}
+                    >
                       {usoSeleccionado.usadas} de {limiteUso} usos este mes
                     </span>
                   </div>
@@ -781,7 +787,7 @@ export default function NuevaSolicitud({ embedded = false, onClose }: NuevaSolic
             </div>
           )}
 
-          <TextArea label="Motivo" {...register('motivo')} rows={4} error={errors.motivo} />
+          <TextArea label="Motivo" {...register('motivo')} rows={4} error={errors.motivo} className='bg-gray-50 border border-gray-300 focus:ring-2' />
 
           {tipoSeleccionado?.codigo === 'PER_COMISION_SERVICIO' && (
             <Input
@@ -789,6 +795,11 @@ export default function NuevaSolicitud({ embedded = false, onClose }: NuevaSolic
               placeholder="Ciudad o sede donde se realizará la comisión"
               {...register('lugar_comision')}
             />
+          )}
+          {tipoSeleccionado?.unidad_medida === 'HORAS' && (
+            <p className='helper-text'>
+              Evidencia (Opcional)
+            </p>
           )}
 
           {requiereSustento && (
@@ -830,7 +841,7 @@ export default function NuevaSolicitud({ embedded = false, onClose }: NuevaSolic
           <DropZone onFilesChange={setArchivos} accept=".pdf,.jpg,.jpeg,.png" className="mb-2" />
           {tipoSeleccionado?.unidad_medida === 'HORAS' && (
             <p className="helper-text">
-              La evidencia es opcional en permisos por horas. Puede adjuntarla si desea respaldar su solicitud.
+             Puede adjuntarla si desea respaldar su solicitud.
             </p>
           )}
           {requiereSustento && !tieneSustento && (
