@@ -1,9 +1,10 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiClient } from '@/services/api';
-import { Badge, Card, useToast } from '@/components/common';
+import { Button, Badge, Card, useToast } from '@/components/common';
 import { formatearFechaCantidad, estadoLabel, asBool } from '@/utils/format';
-import { Search, ChevronRight } from 'lucide-react';
+import { Search, ChevronRight, Plus } from 'lucide-react';
+import ModalNuevaSolicitud from '@/components/solicitudes/ModalNuevaSolicitud';
 
 export default function MisSolicitudes() {
   const { toast } = useToast();
@@ -12,6 +13,7 @@ export default function MisSolicitudes() {
   const [filtroEstado, setFiltroEstado] = React.useState('');
   const [filtroAnio, setFiltroAnio] = React.useState(String(new Date().getFullYear()));
   const [busqueda, setBusqueda] = React.useState('');
+  const [nuevaSolicitudOpen, setNuevaSolicitudOpen] = React.useState(false);
   const [loading, setLoading] = React.useState(true);
 
   const estados = [
@@ -73,9 +75,19 @@ export default function MisSolicitudes() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-text">Mis solicitudes</h1>
-        <p className="text-gray-600">Consulte el estado de sus solicitudes de permisos y licencias.</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-text">Mis solicitudes</h1>
+          <p className="text-gray-600">Consulte el estado de sus solicitudes de permisos y licencias.</p>
+        </div>
+        <Button
+          variant="primary"
+          className="w-full sm:w-auto"
+          onClick={() => setNuevaSolicitudOpen(true)}
+        >
+          <Plus className="w-4 h-4" />
+          Nueva solicitud
+        </Button>
       </div>
 
       <div className="flex flex-col md:flex-row gap-3 items-end">
@@ -206,7 +218,7 @@ export default function MisSolicitudes() {
                         }
                       }}
                     >
-                      <td className="px-4 py-3 text-sm font-medium text-text">{s.nro_solicitud}</td>
+                      <td className="px-4 py-3 text-sm font-semibold text-primary">{s.nro_solicitud}</td>
                       <td className="px-4 py-3 text-sm text-text">{s.tipo?.nombre || '—'}</td>
                       <td className="px-4 py-3 text-sm text-text">
                         <div className="flex items-center gap-2">
@@ -243,6 +255,14 @@ export default function MisSolicitudes() {
           </div>
         </>
       )}
+
+      <ModalNuevaSolicitud
+        isOpen={nuevaSolicitudOpen}
+        onClose={() => {
+          setNuevaSolicitudOpen(false);
+          cargar();
+        }}
+      />
     </div>
   );
 }
