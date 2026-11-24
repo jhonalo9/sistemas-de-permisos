@@ -116,11 +116,14 @@ class MarcacionesController extends BaseApiController
 
     public function fueraAhora()
     {
+        (new MarcacionService())->cerrarSinRetornoVencidas();
         return ApiResponse::ok((new MarcacionModel())->fueraAhora());
     }
 
     public function noVolvieron()
     {
+        (new MarcacionService())->cerrarSinRetornoVencidas();
+
         $row = db_connect()->table('permiso_configuracion')
             ->where('clave', 'hora_corte_jornada')
             ->get()->getRowArray();

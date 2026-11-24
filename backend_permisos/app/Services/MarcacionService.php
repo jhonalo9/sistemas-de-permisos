@@ -176,6 +176,106 @@ class MarcacionService
     }
 
     /**
+     * Cierra automáticamente los permisos sin retorno cuando ya terminó la
+     * jornada laboral configurada (hora_corte_jornada).
+     */
+    public function cerrarSinRetornoVencidas(): int
+    {
+        $db = db_connect();
+
+        $config = $db->table('permiso_configuracion')
+            ->where('clave', 'hora_corte_jornada')
+            ->get()->getRowArray();
+        $corte = $config['valor'] ?? '17:00';
+
+        $hoy = date('Y-m-d');
+        $ahora = date('H:i:s');
+
+        $pendientes = $db->table('permiso_solicitud_papeleta s')
+            ->select('s.id_solicitud, s.id_servidor, s.id_tipo, s.fecha_inicio,
+                      s.con_retorno, t.unidad_medida,
+                      m.fecha_hora AS salida, m.id_usuario_control')
+            ->join('permiso_tipo_solicitud t', 't.id_tipo = s.id_tipo')
+            ->join('permiso_marcacion_control m', "m.id_solicitud = s.id_solicitud AND m.tipo = 'SALIDA'")
+            ->where('s.estado', 'EN_CURSO')
+            ->where('s.con_retorno', 0)
+            ->where('s.fecha_inicio <=', $hoy)
+            ->get()->getResultArray();
+
+        $cerradas = 0;
+
+        foreach ($pendientes as $s) {
+            $idSolicitud = (int) $s['id_solicitud'];
+
+            if ($this->marcaciones->existeTipo($idSolicitud, 'RETORNO')
+                || $this->marcaciones->existeTipo($idSolicitud, 'CIERRE')) {
+                continue;
+            }
+
+            $fechaSalida = substr((string) $s['salida'], 0, 10);
+            if ($fechaSalida > $hoy) continue;
+            if ($fechaSalida === $hoy && $ahora < $corte) continue;
+
+            $salidaTs = strtotime((string) $s['salida']);
+            $corteTs  = strtotime($fechaSalida . ' ' . $corte);
+            if ($salidaTs === false || $corteTs === false) continue;
+
+            $finTs = max($corteTs, $salidaTs);
+            $min   = max(0, (int) round(($finTs - $salidaTs) / 60));
+            $horas = round($min / 60, 2);
+            $esPorHoras = ($s['unidad_medida'] ?? '') === 'HORAS';
+
+            $db->transBegin();
+            try {
+                $this->marcaciones->insert([
+                    'id_solicitud'       => $idSolicitud,
+                    'tipo'               => 'CIERRE',
+                    'origen'             => 'MANUAL',
+                    'id_usuario_control' => (int) $s['id_usuario_control'],
+                    'observacion'        => 'Cierre automático al finalizar la jornada (' . $corte . ').',
+                ]);
+
+                $update = [
+                    'tiempo_empleado_min' => $min,
+                    'hora_inicio'         => date('H:i:s', $salidaTs),
+                    'hora_fin'            => date('H:i:s', $finTs),
+                    'estado'              => 'EJECUTADA',
+                ];
+                if ($esPorHoras) {
+                    $update['cantidad'] = $horas;
+                }
+
+                $this->solicitudes->update($idSolicitud, $update);
+
+                if ($esPorHoras) {
+                    $anio = (int) substr((string) $s['fecha_inicio'], 0, 4);
+                    $this->saldos->consumir(
+                        (int) $s['id_servidor'],
+                        (int) $s['id_tipo'],
+                        $anio,
+                        $horas
+                    );
+                }
+
+                $this->historial->insert([
+                    'id_solicitud' => $idSolicitud,
+                    'estado_ant'   => 'EN_CURSO',
+                    'estado_new'   => 'EJECUTADA',
+                    'id_usuario'   => (int) $s['id_usuario_control'],
+                    'comentario'   => 'Permiso cerrado automáticamente al finalizar la jornada (' . $corte . ').',
+                ]);
+
+                $db->transCommit();
+                $cerradas++;
+            } catch (\Throwable $e) {
+                $db->transRollback();
+            }
+        }
+
+        return $cerradas;
+    }
+
+    /**
      * Cierra manualmente un permiso marcado como "sin retorno".
      */
     public function cerrarSinRetorno(int $idSolicitud, int $idUsuario, ?string $observacion = null): array

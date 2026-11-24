@@ -12,6 +12,7 @@ class SolicitudesController extends BaseApiController
 {
     public function index()
     {
+        (new \App\Services\MarcacionService())->cerrarSinRetornoVencidas();
         $filtros = [
             'estado' => $this->request->getGet('estado'),
             'anio'   => $this->request->getGet('anio'),

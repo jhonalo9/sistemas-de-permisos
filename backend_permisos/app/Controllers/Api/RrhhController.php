@@ -10,6 +10,7 @@ class RrhhController extends BaseApiController
 {
     public function panel()
     {
+        (new \App\Services\MarcacionService())->cerrarSinRetornoVencidas();
         $db = db_connect();
         return ApiResponse::ok([
             'pendientes_validar'  => (int) $db->table('permiso_solicitud_papeleta')->where('estado', 'APROBADA_JEFE')->countAllResults(),
