@@ -46,6 +46,30 @@ class Database extends Config
     'numberNative' => false,
 ];
 
+    /**
+     * Conexión de solo lectura a la base externa de RRHH.
+     */
+    public array $external = [
+        'DSN'      => '',
+        'hostname' => '127.0.0.1',
+        'username' => '',
+        'password' => '',
+        'database' => '',
+        'DBDriver' => 'MySQLi',
+        'DBPrefix' => '',
+        'pConnect' => false,
+        'DBDebug'  => false,
+        'charset'  => 'utf8mb4',
+        'DBCollat' => 'utf8mb4_general_ci',
+        'swapPre'  => '',
+        'encrypt'  => false,
+        'compress' => false,
+        'strictOn' => false,
+        'failover' => [],
+        'port'     => 3306,
+        'numberNative' => false,
+    ];
+
     //    /**
     //     * Sample database connection for SQLite3.
     //     *
